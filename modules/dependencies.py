@@ -9,7 +9,7 @@ from shared.strings import (
     HMAC_MISSING_SIGNATURE,
     HMAC_UNSUPPORTED_METHOD,
 )
-from shared.environment import env
+from modules.environment.environment import env
 
 
 async def require_hmac_signature(request: Request) -> None:

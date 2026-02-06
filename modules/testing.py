@@ -10,7 +10,7 @@ from psycopg_pool import AsyncConnectionPool
 
 from shared.context import ServiceContext
 from modules.logging.logging import create_logger
-from shared.environment import env
+from modules.environment.environment import env
 
 
 logger = create_logger(__name__)
@@ -87,12 +87,16 @@ class CustomAsyncTestCase(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        patched_load_env: Mock = cast(Mock, patch("shared.environment.load_env"))
+        patched_load_env: Mock = cast(
+            Mock, patch("modules.aws.secret_manager.load_aws_env")
+        )
         patched_load_env.return_value = None
 
 
 class CustomTestCase(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
-        patched_load_env: Mock = cast(Mock, patch("shared.environment.load_env"))
+        patched_load_env: Mock = cast(
+            Mock, patch("modules.aws.secret_manager.load_aws_env")
+        )
         patched_load_env.return_value = None

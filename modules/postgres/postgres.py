@@ -4,7 +4,7 @@ from string import Template
 from psycopg_pool import ConnectionPool, AsyncConnectionPool
 
 from modules.logging.logging import create_logger
-from shared.environment import env
+from modules.environment.environment import env
 
 
 __async_writer_cached_connection_pool: None | AsyncConnectionPool = None
