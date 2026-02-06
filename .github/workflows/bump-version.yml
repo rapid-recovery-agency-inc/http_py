@@ -1,0 +1,56 @@
+name: Bump patch version on push to main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    # Skip if the commit was made by the bot itself to avoid infinite loops
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install toml package
+        run: pip install tomlkit
+
+      - name: Bump patch version
+        run: |
+          python - <<'EOF'
+          import tomlkit
+
+          with open("pyproject.toml", "r") as f:
+              doc = tomlkit.parse(f.read())
+
+          version = doc["tool"]["poetry"]["version"]
+          major, minor, patch = version.split(".")
+          new_version = f"{major}.{minor}.{int(patch) + 1}"
+          doc["tool"]["poetry"]["version"] = new_version
+
+          with open("pyproject.toml", "w") as f:
+              f.write(tomlkit.dumps(doc))
+
+          print(f"Bumped version: {version} -> {new_version}")
+          EOF
+
+      - name: Commit and push version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "chore: bump patch version [skip ci]"
+          git push
