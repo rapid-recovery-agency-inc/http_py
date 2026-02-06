@@ -2,6 +2,7 @@
 
 import http_py
 from http_py import (
+    BadRequestException,
     ContentType,
     CORSMiddleware,
     ErrorResponse,
@@ -11,8 +12,11 @@ from http_py import (
     HTTPStatus,
     LoggingMiddleware,
     SuccessResponse,
+    calculate_offset,
     create_error_response,
+    create_paginated_response,
     create_success_response,
+    extract_bearer_token,
     http_exception_handler,
 )
 
@@ -33,6 +37,7 @@ def test_exports() -> None:
 
     # Exceptions
     assert HTTPException is not None
+    assert BadRequestException is not None
     assert http_exception_handler is not None
 
     # Models
@@ -42,6 +47,9 @@ def test_exports() -> None:
     # Utils
     assert create_success_response is not None
     assert create_error_response is not None
+    assert create_paginated_response is not None
+    assert calculate_offset is not None
+    assert extract_bearer_token is not None
 
     # Middleware
     assert CORSMiddleware is not None
