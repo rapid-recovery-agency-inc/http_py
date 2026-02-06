@@ -34,3 +34,31 @@ jobs:
       - name: Add "change requested" label if needed
         if: github.event.pull_request.draft == false
         uses: rapid-recovery-agency-inc/change-requested-label-action@main
+      - name: Bump patch version
+        run: |
+          python - <<'EOF'
+          import tomlkit
+
+          with open("pyproject.toml", "r") as f:
+              doc = tomlkit.parse(f.read())
+
+          version = doc["tool"]["poetry"]["version"]
+          major, minor, patch = version.split(".")
+          new_version = f"{major}.{minor}.{int(patch) + 1}"
+          doc["tool"]["poetry"]["version"] = new_version
+
+          with open("pyproject.toml", "w") as f:
+              f.write(tomlkit.dumps(doc))
+
+          print(f"Bumped version: {version} -> {new_version}")
+          EOF
+
+      - name: Commit and push version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "chore: bump patch version [skip ci]"
+          git push
+
