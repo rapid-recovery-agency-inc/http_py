@@ -1,0 +1,36 @@
+name: Check formatting, linting and Build on Pull Request
+
+on: pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.13"]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+          pip install pre-commit
+      - name: Running all hooks
+        run: |
+          pre-commit run --all-files
+      - name: Running unit tests
+        if: github.event.pull_request.draft == false
+        run: |
+          poetry run python -m unittest discover -v
+      - name: Check for tests in PR
+        if: github.event.pull_request.draft == false
+        uses: rapid-recovery-agency-inc/check-for-tests-action@main
+      - name: Add "change requested" label if needed
+        if: github.event.pull_request.draft == false
+        uses: rapid-recovery-agency-inc/change-requested-label-action@main

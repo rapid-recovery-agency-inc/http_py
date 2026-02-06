@@ -1,0 +1,114 @@
+[tool.poetry]
+name = "lpr_classifier_microservice"
+version = "0.1.0"
+description = ""
+authors = ["Angel Lacret <alacret@gmail.com>"]
+readme = "README.md"
+packages = [
+    { include = "modules" },
+    { include = "shared" }
+]
+
+[tool.poetry.dependencies]
+python = "3.13.*"
+python-dotenv = "1.1.0"
+rapidfuzz = "3.13.0"
+timezonefinder = "8.1.0"
+usaddress = "0.5.16"
+boto3 = "1.38.34"
+psycopg = { version = "3.2.6", extras = ["binary", "pool"] }
+psycopg-pool = "3.2.6"
+pydantic = "2.11.5"
+fastapi = {extras = ["standard"], version = "^0.115.12"}
+tenacity = "^9.1.2"
+apscheduler = "^3.10.4"
+more-itertools = "10.7.0"
+pyap2 = "0.1.14"
+pyhumps = "^3.8.0"
+httpx = "0.28.1"
+uvicorn = "^0.34.3"
+spacy = "3.8.7"
+pillow = "11.2.1"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.8"
+pre-commit = "^3.6.0"
+mypy = "1.13.0"
+vulture = "^2.14"
+boto3-stubs = "^1.40.32"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+
+[tool.ruff.lint]
+ignore = ["E203", "S110"] # "E704"
+select = [
+    "E", "F", "W",  # flake8
+    "I",    # isort
+    "UP",   # pyupgrade
+    "PL",   # pylint"
+    "B",    # flake8-bugbear: https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+    "S",    # flake8-bandit:  https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+    "C90"   # flake8-mccabe: https://docs.astral.sh/ruff/rules/#mccabe-c90
+]
+
+
+[tool.ruff.lint.per-file-ignores]
+"modules/parsing/meta.py" = ["E501"]
+"modules/address_tagging/models.py" = ["E501"]
+"modules/parsing/services.py" = ["W605"]
+"alembic/**" = ["ALL"]
+"**/tests/**" = ["S101", "PLR2004"]
+
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+lines-after-imports = 2
+from-first = false
+length-sort = true
+length-sort-straight = true
+force-sort-within-sections = false
+lines-between-types = 0
+order-by-type = false
+force-single-line = false
+known-first-party = [
+    "modules",
+    "shared",
+    "tests"
+]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder"
+]
+
+
+[tool.ruff.lint.mccabe]
+max-complexity = 13
+
+
+[tool.mypy]
+mypy_path = "."
+python_version = "3.13"
+strict = true
+implicit_reexport = true  # Insightt has convention of not using __all__
+plugins = [
+  "pydantic.mypy"
+]
+exclude = [
+    'shared/h3.py'
+]

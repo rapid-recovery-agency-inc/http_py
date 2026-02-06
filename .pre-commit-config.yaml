@@ -1,0 +1,32 @@
+repos:
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.12.11
+    hooks:
+      - id: ruff
+        name: ruff (fix all except E501)
+        args: [ "--fix", "--ignore", "E501" ]
+      - id: ruff-format
+        name: ruff-format
+      - id: ruff
+        name: ruff (E501 only; fail leftovers)
+        args: [ "--select", "E501" ]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.17.1
+    hooks:
+    - id: mypy
+#      args: [--strict, --implicit-reexport, --explicit-package-bases, --ignore-missing-imports, --follow-imports=normal]
+      args: [ --ignore-missing-imports, --no-incremental]
+      additional_dependencies:
+        - "pydantic>=2.5.0"
+        - "boto3-stubs"
+  - repo: local
+    hooks:
+      - id: unittests
+        name: unittests
+        entry: poetry run python -m unittest discover -v
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+        stages: [pre-push]
