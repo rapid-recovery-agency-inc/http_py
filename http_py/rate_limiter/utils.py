@@ -4,8 +4,8 @@ from datetime import UTC, datetime
 
 from psycopg_pool import PoolTimeout
 
-from modules.logging.logging import create_logger
-from modules.cache.in_memory_cache import InMemoryCache
+from http_py.logging.logging import create_logger
+from http_py.cache.in_memory_cache import InMemoryCache
 from shared.rate_limiter.types import (
     RateLimiterRule,
     RateLimiterRequestCount,

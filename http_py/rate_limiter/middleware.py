@@ -3,7 +3,7 @@ from fastapi.responses import Response, StreamingResponse
 from starlette.concurrency import iterate_in_threadpool
 
 from shared.context import build_context
-from modules.logging.logging import create_logger
+from http_py.logging.logging import create_logger
 from shared.environment import env
 from shared.rate_limiter.types import RateLimitException
 from shared.rate_limiter.services import (

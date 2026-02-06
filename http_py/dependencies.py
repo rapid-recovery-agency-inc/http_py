@@ -3,13 +3,13 @@ import hmac
 from fastapi import Request, HTTPException
 from pydantic import SecretStr
 
-from modules.hmac import HmacSigner
+from http_py.hmac import HmacSigner
 from shared.strings import (
     HMAC_INVALID_SIGNATURE,
     HMAC_MISSING_SIGNATURE,
     HMAC_UNSUPPORTED_METHOD,
 )
-from modules.environment.environment import env
+from http_py.environment.environment import env
 
 
 async def require_hmac_signature(request: Request) -> None:

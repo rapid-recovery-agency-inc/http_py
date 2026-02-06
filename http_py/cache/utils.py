@@ -1,5 +1,5 @@
 import time
-from modules.cache.models import CacheItem
+from http_py.cache.models import CacheItem
 
 
 def is_cache_item_valid(cache_item: CacheItem) -> bool:

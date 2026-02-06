@@ -3,8 +3,8 @@
 from typing import Any, Generic, TypeVar
 from collections.abc import Mapping
 
-from modules.environment.coercion import to_dataclass_dict
-from modules.environment.validation import validate_keys
+from http_py.environment.coercion import to_dataclass_dict
+from http_py.environment.validation import validate_keys
 
 
 T = TypeVar("T")

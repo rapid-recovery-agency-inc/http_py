@@ -1,4 +1,4 @@
-"""Examples: modules.environment library usage.
+"""Examples: http_py.environment library usage.
 
 Run with:  python examples.py
 """
@@ -7,7 +7,7 @@ import os
 from typing import Literal
 from dataclasses import field, dataclass
 
-from modules.environment import create_environment
+from http_py.environment import create_environment
 
 
 # ──────────────────────────────────────────────────────────────────────

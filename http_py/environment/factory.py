@@ -6,7 +6,7 @@ frozen ``@dataclass`` type.  Then re-export the bound ``env`` and
 
     import os
     from dataclasses import dataclass, field
-    from modules.environment import create_environment
+    from http_py.environment import create_environment
 
     @dataclass(frozen=True)
     class AppEnv:
@@ -24,7 +24,7 @@ frozen ``@dataclass`` type.  Then re-export the bound ``env`` and
 
 from typing import TypeVar
 
-from modules.environment.manager import EnvironmentManager
+from http_py.environment.manager import EnvironmentManager
 
 
 T = TypeVar("T")

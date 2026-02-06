@@ -5,7 +5,7 @@ description = ""
 authors = ["Angel Lacret <alacret@gmail.com>"]
 readme = "README.md"
 packages = [
-    { include = "modules" }
+    { include = "http_py" }
 ]
 
 [tool.poetry.dependencies]
@@ -22,7 +22,7 @@ pre-commit = "^4.5.1"
 mypy = "1.19.1"
 
 [tool.setuptools.packages.find]
-where = ["modules"]
+where = ["http_py"]
 
 [build-system]
 requires = ["poetry-core"]
@@ -51,14 +51,6 @@ select = [
 ]
 
 
-[tool.ruff.lint.per-file-ignores]
-"modules/parsing/meta.py" = ["E501"]
-"modules/address_tagging/models.py" = ["E501"]
-"modules/parsing/services.py" = ["W605"]
-"alembic/**" = ["ALL"]
-"**/tests/**" = ["S101", "PLR2004"]
-
-
 [tool.ruff.lint.isort]
 combine-as-imports = true
 lines-after-imports = 2
@@ -70,9 +62,7 @@ lines-between-types = 0
 order-by-type = false
 force-single-line = false
 known-first-party = [
-    "modules",
-    "shared",
-    "tests"
+    "http_py",
 ]
 section-order = [
     "future",

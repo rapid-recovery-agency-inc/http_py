@@ -3,8 +3,8 @@ from string import Template
 
 from psycopg_pool import ConnectionPool, AsyncConnectionPool
 
-from modules.logging.logging import create_logger
-from modules.environment.environment import env
+from http_py.logging.logging import create_logger
+from http_py.environment.environment import env
 
 
 __async_writer_cached_connection_pool: None | AsyncConnectionPool = None

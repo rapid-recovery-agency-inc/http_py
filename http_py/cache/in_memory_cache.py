@@ -1,6 +1,6 @@
-from modules.cache.models import CacheItem
+from http_py.cache.models import CacheItem
 import time
-from modules.cache.utils import is_cache_item_valid
+from http_py.cache.utils import is_cache_item_valid
 
 DEFAULT_EXPIRATION_IN_SECONDS = 300  # 5 minutes
 

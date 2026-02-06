@@ -4,8 +4,8 @@ import os
 from datetime import datetime
 
 from shared.aws import fetch_aws_secret
-from modules.logging.logging import create_logger
-from modules.environment.manager import EnvironmentManager
+from http_py.logging.logging import create_logger
+from http_py.environment.manager import EnvironmentManager
 
 
 logger = create_logger(__name__)
@@ -19,7 +19,7 @@ def load_aws_env(manager: EnvironmentManager) -> None:  # type: ignore[type-arg]
     :meth:`EnvironmentManager.load` with the merged result.
 
     The manager's ``mandatory_keys`` (configured at
-    :func:`~modules.environment.create_environment` time) are validated
+    :func:`~http_py.environment.create_environment` time) are validated
     automatically by :meth:`~EnvironmentManager.load`.
 
     Args:
