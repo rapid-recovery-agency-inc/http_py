@@ -1,13 +1,14 @@
 import random
 from typing import Protocol
-from collections.abc import Callable, Awaitable
+from collections.abc import Callable
 
 from psycopg_pool import AsyncConnectionPool
-from shared.postgres import (
+from starlette.requests import Request
+
+from http_py.postgres import (
     get_async_writer_connection_pool,
     get_random_reader_connection_pool,
 )
-from starlette.requests import Request
 
 
 class Context(Protocol):

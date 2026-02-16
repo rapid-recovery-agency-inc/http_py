@@ -1,16 +1,20 @@
-from boto3.session import Session
-
-from mypy_boto3_secretsmanager.client import SecretsManagerClient
 import json
 from datetime import datetime
 
+from boto3.session import Session
+from mypy_boto3_secretsmanager.client import SecretsManagerClient
+
+from http_py.types import AWSEnvironment
 from http_py.logging.logging import create_logger
-from http_py.aws.types import AWSEnvironment
+
 
 logger = create_logger(__name__)
 
+
 def fetch_aws_secret(secret_name: str, aws_region: str) -> dict[str, str]:
-    client: SecretsManagerClient = Session().client("secretsmanager", region_name=aws_region)
+    client: SecretsManagerClient = Session().client(
+        "secretsmanager", region_name=aws_region
+    )
     try:
         secret_value = client.get_secret_value(SecretId=secret_name)
     except Exception as e:
@@ -24,8 +28,6 @@ def fetch_aws_secret(secret_name: str, aws_region: str) -> dict[str, str]:
     except Exception as e:
         logger.error(f"fetch_aws_secret:Error parsing secret {secret_name}: {e!s}")
         raise e
-
-
 
 
 def load_aws_env(environment: AWSEnvironment) -> dict[str, str]:
@@ -49,7 +51,7 @@ def load_aws_env(environment: AWSEnvironment) -> dict[str, str]:
             )
         }
 
-    merged_dict_env: dict[str, str] = { "SECRETS": "".join(list(secrets.values())) }
+    merged_dict_env: dict[str, str] = {"SECRETS": "".join(list(secrets.values()))}
     for k, v in secret_values.items():
         merged_dict_env[k] = v
     return merged_dict_env

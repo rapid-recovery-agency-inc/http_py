@@ -3,12 +3,8 @@ import sys
 import logging
 import warnings
 from enum import Enum
-from types import TracebackType
-from typing import Any, Final, Union, NamedTuple
-from functools import lru_cache
-from collections.abc import Mapping, Callable
-
-from dotenv import load_dotenv
+from typing import Any, Final, NamedTuple
+from collections.abc import Callable
 
 
 class LogLevel(Enum):
@@ -27,30 +23,10 @@ LOG_LEVELS: Final[list[LogLevel]] = [
     LogLevel.CRITICAL,
 ]
 
-# Custom type aliases for complex types used in method signatures
-ExcInfoType = Union[  # noqa: UP007
-    bool,
-    tuple[type[BaseException], BaseException, TracebackType | None],
-    tuple[None, None, None],
-    BaseException | None,
-]
-ExtraType = Mapping[str, object] | None
-MsgType = object
-ArgsType = object
-
-ENV_SECRET_NAME_PARTS = 2
-
 
 class OsLoggingConfig(NamedTuple):
     environment_name: str
     log_level_console: LogLevel = LogLevel.DEBUG
-
-
-def _load_environment_secret_name() -> str:
-    environment_secret_name: str | None = os.environ.get("ENVIRONMENT_SECRET_NAME")
-    if not environment_secret_name:
-        return "local/address-microservice"
-    return environment_secret_name
 
 
 def _load_log_level() -> LogLevel:
@@ -75,20 +51,6 @@ def _load_log_level() -> LogLevel:
         return LogLevel.DEBUG
 
 
-@lru_cache
-def load_os_vars() -> OsLoggingConfig:
-    """Access OS env variables directly, ensuring required vars are available."""
-    load_dotenv()
-
-    environment_name = _load_environment_secret_name()
-    log_level_console = _load_log_level()
-
-    return OsLoggingConfig(
-        environment_name=environment_name,
-        log_level_console=log_level_console,
-    )
-
-
 def log_to_dict(
     logger_function: Callable[[dict[str, object]], None],
     msg: object,
@@ -111,13 +73,13 @@ def log_to_dict(
 class CustomLogger(logging.Logger):
     def __init__(self, name: str) -> None:
         super().__init__(name)
-        log_config = load_os_vars()
+        log_level = _load_log_level()
 
-        self.setLevel(log_config.log_level_console.value)
+        self.setLevel(log_level.value)
 
         # Console Handler
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(log_config.log_level_console.value)
+        console_handler.setLevel(log_level.value)
         console_format = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
