@@ -1,10 +1,27 @@
-from psycopg_pool import AsyncConnectionPool
-from starlette.requests import Request
+import random
+from typing import Protocol
+from collections.abc import Callable, Awaitable
 
+from psycopg_pool import AsyncConnectionPool
 from shared.postgres import (
     get_async_writer_connection_pool,
     get_random_reader_connection_pool,
 )
+from starlette.requests import Request
+
+
+class Context(Protocol):
+    writer_pool: AsyncConnectionPool
+    reader_pools: list[AsyncConnectionPool]
+
+    def writer(self) -> AsyncConnectionPool:
+        return self.writer_pool
+
+    def reader(self) -> AsyncConnectionPool:
+        return random.choice(self.reader_pools)  # noqa: S311
+
+
+ContextFactory = Callable[[], Context]
 
 
 class ServiceContext:

@@ -1,7 +1,6 @@
 import hmac
 
 from fastapi import Request, HTTPException
-from pydantic import SecretStr
 
 from http_py.hmac import HmacSigner
 from shared.strings import (

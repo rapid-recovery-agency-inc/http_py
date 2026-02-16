@@ -1,4 +1,15 @@
+from typing import Any
+from dataclasses import dataclass
+
+
+@dataclass(slots=True)
 class CacheItem:
-    def __init__(self, value: object, expires_at: int = 0):
-        self.expires_at = expires_at
-        self.value = value
+    """Represents a cached item with its value and expiration timestamp.
+
+    Attributes:
+        value: The cached value.
+        expires_at: Unix timestamp (seconds) when this item expires.
+    """
+
+    value: Any
+    expires_at: int

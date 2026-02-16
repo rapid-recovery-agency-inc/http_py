@@ -1,6 +1,6 @@
 """Examples: http_py.environment library usage.
 
-Run with:  python examples.py
+Run with:  python environment.py
 """
 
 import os
