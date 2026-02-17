@@ -16,16 +16,49 @@ Type-safe environment variable loading with validation and coercion.
 
 ```python
 from dataclasses import dataclass
-from http_py.environment import EnvironmentFactory
+from http_py.environment import create_environment
+
+# ──────────────────────────────────────────────────────────────────────
+# 1. Custom converter via field metadata
+# ──────────────────────────────────────────────────────────────────────
+#
+# Any field that needs non-standard coercion can declare a converter
+# in its ``metadata`` dict.  The converter receives the raw value and
+# must return the coerced result.
+
+BooleanString = Literal["true", "false"]
+
+
+def to_boolean_string(value: bool | int | str) -> BooleanString:
+    """Convert various truthy/falsy representations to "true"/"false"."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return "true" if value == 1 else "false"
+    return "true" if str(value).lower() == "true" else "false"
+
 
 @dataclass(frozen=True)
-class Env:
-    DATABASE_URL: str
-    DEBUG: bool = False
-    MAX_CONNECTIONS: int = 10
+class AppEnvironment:
+    """A sample frozen dataclass defining the environment shape."""
 
-factory = EnvironmentFactory()
-env = factory.create(Env)  # Loads from os.environ with validation
+    DEBUG: bool = False
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_NAME: str = "mydb"
+    FEATURE_FLAG: BooleanString = field(
+        default="false",
+        metadata={"converter": to_boolean_string},
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# 2. Bootstrap — call create_environment once
+# ──────────────────────────────────────────────────────────────────────
+
+_manager = create_environment(AppEnvironment)
+env = _manager.env
+set_environment = _manager.set_environment
 ```
 
 **Features:**
@@ -34,7 +67,7 @@ env = factory.create(Env)  # Loads from os.environ with validation
 - Required vs optional field validation
 - Custom validators support
 
-📖 [Environment Example](examples/environment.py)
+📖 [Environment Example](examples/environment_example.py)
 
 ---
 
@@ -59,7 +92,7 @@ redis_cache = RedisCache(redis_client)
 await redis_cache.set("key", data)
 ```
 
-📖 [Cache Example](examples/cache.py)
+📖 [Cache Example](examples/cache_example.py)
 
 ---
 
@@ -71,20 +104,36 @@ Declarative exception handler factory for consistent error responses.
 from http_py.exception_handling import ExceptionHandlerFactory, ExceptionDeclaration
 
 # Define exception mappings
-declarations = [
-    ExceptionDeclaration(ValueError, 400, "VALIDATION_ERROR"),
-    ExceptionDeclaration(PermissionError, 403, "FORBIDDEN"),
-    ExceptionDeclaration(FileNotFoundError, 404, "NOT_FOUND"),
-]
+HANDLER_MAP: Final[dict[str, HandlerRule]] = {
+    # 422 - Validation errors (custom content builder)
+    "validation": HandlerRule(
+        RequestValidationError,
+        status_code=422,
+        content_builder=build_validation_content,
+    ),
+    # 404 - Not Found
+    "task_not_found": HandlerRule(
+        TaskDoesNotExistException,
+        status_code=404,
+    ),
+   ...
+}
 
-factory = ExceptionHandlerFactory(declarations)
-handler = factory.create_handler()
+def create_app() -> FastAPI:
+    """Create FastAPI app with unified exception handler."""
+    app = FastAPI()
 
-# Add to FastAPI
-app.add_exception_handler(Exception, handler)
+    # Create single handler for all exceptions
+    exception_handler = create_exception_handler(handler_map=HANDLER_MAP)
+
+    # Register for validation errors and all exceptions
+    app.add_exception_handler(RequestValidationError, exception_handler)
+    app.add_exception_handler(Exception, exception_handler)
+
+    return app
 ```
 
-📖 [Exception Handling Example](examples/exception_handling.py)
+📖 [Exception Handling Example](examples/exception_handling_example.py)
 
 ---
 
@@ -93,25 +142,38 @@ app.add_exception_handler(Exception, handler)
 Connection pool management with writer/reader separation.
 
 ```python
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from http_py.postgres import (
-    init_async_postgres_pool,
     get_async_writer_connection_pool,
-    get_async_reader_connection_pool,
-    close_async_postgres_pools,
+    get_random_reader_connection_pool,
+    warm_up_connections_pools,
+    cleanup_connections_pools,
 )
 
-# Initialize on startup
-init_async_postgres_pool(env)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup - warm up connection pools
+    await warm_up_connections_pools(env)
+    yield
+    # Shutdown - close all pools
+    await cleanup_connections_pools()
 
-# Use writer for mutations
-writer_pool = get_async_writer_connection_pool(env)
-async with writer_pool.connection() as conn:
-    await conn.execute("INSERT INTO users ...")
+app = FastAPI(lifespan=lifespan)
 
-# Use reader for queries (uses read replica if configured)
-reader_pool = get_async_reader_connection_pool(env)
-async with reader_pool.connection() as conn:
-    result = await conn.execute("SELECT * FROM users")
+@app.get("/users/{user_id}")
+async def get_user_endpoint(user_id: int):
+    pool = get_random_reader_connection_pool(env)  # Uses read replica
+    user = await get_user(pool, user_id)
+    if user:
+        return user
+    return {"error": "User not found"}
+
+@app.post("/users")
+async def create_user_endpoint(name: str, email: str):
+    pool = get_async_writer_connection_pool(env)  # Uses primary
+    user_id = await create_user(pool, name, email)
+    return {"id": user_id}
 ```
 
 📖 [PostgreSQL Example](examples/postgres_example.py)
@@ -123,9 +185,9 @@ async with reader_pool.connection() as conn:
 Structured logging with context support.
 
 ```python
-from http_py.logging import CustomLogger
+from http_py.logging import create_logger
 
-logger = CustomLogger("my_service")
+logger = create_logger(__name__)
 
 logger.info("User logged in", extra={
     "user_id": 123,
@@ -147,16 +209,30 @@ logger.error("Failed to process", extra={
 HMAC-SHA256 signature verification for webhooks and secure APIs.
 
 ```python
-from http_py.hmac import hmac_validator
+from fastapi import FastAPI, Request, Depends
+from http_py.hmac import require_hmac_signature, HMACException
 
-validator = hmac_validator()
+app = FastAPI()
 
-# Verify webhook signature
-is_valid = validator.verify_signature(
-    signature=request.headers["X-Signature"],
-    payload=await request.body(),
-    secret=env.SECRETS["webhook_provider"]
+env = HMACEnv(
+    SECRETS=["current_secret", "previous_secret"],  # Key rotation
+    HMAC_HEADER_NAME="X-HMAC-Signature",
 )
+
+async def verify_hmac(request: Request):
+    '''Dependency to verify HMAC signature.'''
+    await require_hmac_signature(request, env)
+
+@app.post("/secure/endpoint", dependencies=[Depends(verify_hmac)])
+async def secure_endpoint():
+    return {"status": "authorized"}
+
+@app.exception_handler(HMACException)
+async def handle_hmac_error(request: Request, exc: HMACException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.detail}
+    )
 ```
 
 📖 [HMAC Example](examples/hmac_example.py)
@@ -168,23 +244,41 @@ is_valid = validator.verify_signature(
 Rate limiting middleware with Redis support.
 
 ```python
-from http_py.rate_limiter import RateLimiter, RateLimitConfig
+ from contextlib import asynccontextmanager
 
-config = RateLimitConfig(
-    requests_per_window=100,
-    window_seconds=60
-)
+    from fastapi import FastAPI
+    from starlette.responses import JSONResponse
+    from starlette.middleware.base import BaseHTTPMiddleware
 
-rate_limiter = RateLimiter(config)
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # Startup: initialize database pools
+        # await warm_up_connections_pools(env)
+        yield
+        # Shutdown: cleanup pools
+        # await cleanup_connections_pools()
 
-@app.middleware("http")
-async def rate_limit(request: Request, call_next):
-    if not await rate_limiter.check(request.client.host):
-        return JSONResponse(status_code=429, content={"error": "Too many requests"})
-    return await call_next(request)
+    app = FastAPI(lifespan=lifespan)
+
+    # Add rate limiting middleware
+    app.add_middleware(BaseHTTPMiddleware, dispatch=rate_limiter_middleware)
+
+    # Custom handler for rate limit errors (optional)
+    @app.exception_handler(RateLimitException)
+    async def handle_rate_limit_error(
+        request: Request, exc: RateLimitException
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=429,
+            content={
+                "error": "rate_limit_exceeded",
+                "detail": str(exc),
+                "path": request.url.path,
+            },
+        )
 ```
 
-📖 [Rate Limiter Example](examples/rate_limiter.py)
+📖 [Rate Limiter Example](examples/rate_limiter_example.py)
 
 ---
 
@@ -193,14 +287,42 @@ async def rate_limit(request: Request, call_next):
 Request/response logging middleware for observability.
 
 ```python
-from http_py.request_logger import request_logger_middleware
+    from contextlib import asynccontextmanager
 
-app.add_middleware(request_logger_middleware)
+    from fastapi import FastAPI
+    from starlette.middleware.base import BaseHTTPMiddleware
 
-# Logs: method, path, status_code, duration, client_ip
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # Startup: initialize database pools
+        # await warm_up_connections_pools(env)
+        yield
+        # Shutdown: cleanup pools
+        # await cleanup_connections_pools()
+
+    app = FastAPI(lifespan=lifespan)
+
+    # Add request logging middleware
+    app.add_middleware(BaseHTTPMiddleware, dispatch=request_logger_middleware)
+
+    # Example endpoints
+    @app.get("/api/users")
+    async def list_users():
+        return {"users": [{"id": 1, "name": "Alice"}]}
+
+    @app.post("/api/users")
+    async def create_user(name: str):
+        return {"id": 2, "name": name}
+
+    @app.get("/health")
+    async def health_check():
+        # This endpoint is whitelisted - no logging
+        return {"status": "healthy"}
+
+    return app
 ```
 
-📖 [Request Logger Example](examples/request_logger.py)
+📖 [Request Logger Example](examples/request_logger_example.py)
 
 ---
 
@@ -224,58 +346,7 @@ class TestUserService(CustomAsyncTestCase):
             # Database is dropped after test
 ```
 
-📖 [E2E Testing Example](examples/e2e_testing.py)
-
----
-
-## Additional Utilities
-
-### Context Management
-
-```python
-from http_py.context import build_context
-
-# Build application context with all services
-context = build_context(env)
-```
-
-### Request Helpers
-
-```python
-from http_py.request import get_raw_body
-
-# Get raw request body (useful for signature verification)
-body = await get_raw_body(request)
-```
-
-### Shortcuts
-
-```python
-from http_py.shortcuts import ok, created, no_content, bad_request
-
-# Quick response builders
-return ok({"data": result})
-return created({"id": new_id})
-return bad_request("Invalid input")
-```
-
-### Validators
-
-```python
-from http_py.validators import validate_email, validate_url
-
-# Input validation
-is_valid = validate_email("user@example.com")
-```
-
-### AWS Integration
-
-```python
-from http_py.aws import get_secrets_from_aws
-
-# Load secrets from AWS Secrets Manager
-secrets = get_secrets_from_aws(secret_name="my-app/prod")
-```
+📖 [E2E Testing Example](examples/e2e_testing_example.py)
 
 ---
 
@@ -300,7 +371,7 @@ poetry run pre-commit run --all-files
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.13+
 - PostgreSQL (for database features)
 - Redis (optional, for distributed caching/rate limiting)
 

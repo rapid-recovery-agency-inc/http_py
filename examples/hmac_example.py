@@ -56,32 +56,32 @@ def create_signed_request_example() -> None:
 # ──────────────────────────────────────────────────────────────────────
 
 
-# FastAPI dependency example:
-#
-# from fastapi import FastAPI, Request, Depends
-# from http_py.hmac import require_hmac_signature, HMACException
-#
-# app = FastAPI()
-#
-# env = HMACEnv(
-#     SECRETS=["current_secret", "previous_secret"],  # Key rotation
-#     HMAC_HEADER_NAME="X-HMAC-Signature",
-# )
-#
-# async def verify_hmac(request: Request):
-#     '''Dependency to verify HMAC signature.'''
-#     await require_hmac_signature(request, env)
-#
-# @app.post("/secure/endpoint", dependencies=[Depends(verify_hmac)])
-# async def secure_endpoint():
-#     return {"status": "authorized"}
-#
-# @app.exception_handler(HMACException)
-# async def handle_hmac_error(request: Request, exc: HMACException):
-#     return JSONResponse(
-#         status_code=exc.status_code,
-#         content={"error": exc.detail}
-#     )
+FastAPI dependency example:
+
+from fastapi import FastAPI, Request, Depends
+from http_py.hmac import require_hmac_signature, HMACException
+
+app = FastAPI()
+
+env = HMACEnv(
+    SECRETS=["current_secret", "previous_secret"],  # Key rotation
+    HMAC_HEADER_NAME="X-HMAC-Signature",
+)
+
+async def verify_hmac(request: Request):
+    '''Dependency to verify HMAC signature.'''
+    await require_hmac_signature(request, env)
+
+@app.post("/secure/endpoint", dependencies=[Depends(verify_hmac)])
+async def secure_endpoint():
+    return {"status": "authorized"}
+
+@app.exception_handler(HMACException)
+async def handle_hmac_error(request: Request, exc: HMACException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.detail}
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────

@@ -132,58 +132,35 @@ async def transfer_funds(
 # ──────────────────────────────────────────────────────────────────────
 
 
-# from fastapi import FastAPI
-# from contextlib import asynccontextmanager
-# from http_py.postgres import (
-#     get_async_writer_connection_pool,
-#     get_random_reader_connection_pool,
-#     warm_up_connections_pools,
-#     cleanup_connections_pools,
-# )
-#
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     # Startup - warm up connection pools
-#     await warm_up_connections_pools(env)
-#     yield
-#     # Shutdown - close all pools
-#     await cleanup_connections_pools()
-#
-# app = FastAPI(lifespan=lifespan)
-#
-# @app.get("/users/{user_id}")
-# async def get_user_endpoint(user_id: int):
-#     pool = get_random_reader_connection_pool(env)  # Uses read replica
-#     user = await get_user(pool, user_id)
-#     if user:
-#         return user
-#     return {"error": "User not found"}
-#
-# @app.post("/users")
-# async def create_user_endpoint(name: str, email: str):
-#     pool = get_async_writer_connection_pool(env)  # Uses primary
-#     user_id = await create_user(pool, name, email)
-#     return {"id": user_id}
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from http_py.postgres import (
+    get_async_writer_connection_pool,
+    get_random_reader_connection_pool,
+    warm_up_connections_pools,
+    cleanup_connections_pools,
+)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup - warm up connection pools
+    await warm_up_connections_pools(env)
+    yield
+    # Shutdown - close all pools
+    await cleanup_connections_pools()
 
-# ──────────────────────────────────────────────────────────────────────
-# 6. Writer/Reader Separation Pattern
-# ──────────────────────────────────────────────────────────────────────
+app = FastAPI(lifespan=lifespan)
 
-# Configure DB_READER_HOSTS with multiple replicas:
-#
-# @dataclass(frozen=True)
-# class ProdEnv:
-#     DB_WRITER_HOST: str = "db-primary.example.com"
-#     DB_READER_HOSTS: str = "db-replica-1.example.com,db-replica-2.example.com"
-#     ...
-#
-# Usage pattern:
-# - get_async_writer_connection_pool(env) -> routes to primary
-# - get_random_reader_connection_pool(env) -> routes to random replica
-# - get_async_readers_connection_pools(env) -> get all reader pools
-#
-# Benefits:
-# - Distributes read load across replicas
-# - Primary handles only writes
-# - Improved query performance and scalability
+@app.get("/users/{user_id}")
+async def get_user_endpoint(user_id: int):
+    pool = get_random_reader_connection_pool(env)  # Uses read replica
+    user = await get_user(pool, user_id)
+    if user:
+        return user
+    return {"error": "User not found"}
+
+@app.post("/users")
+async def create_user_endpoint(name: str, email: str):
+    pool = get_async_writer_connection_pool(env)  # Uses primary
+    user_id = await create_user(pool, name, email)
+    return {"id": user_id}
