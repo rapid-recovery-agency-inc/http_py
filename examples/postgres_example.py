@@ -4,7 +4,6 @@ This example demonstrates PostgreSQL connection pool management
 with writer/reader separation for high-availability setups.
 """
 
-from typing import Protocol
 from dataclasses import dataclass
 
 from psycopg_pool import AsyncConnectionPool
@@ -12,10 +11,8 @@ from psycopg_pool import AsyncConnectionPool
 from http_py.postgres import (
     cleanup_connections_pools,
     warm_up_connections_pools,
-    get_sync_writer_connection_pool,
     get_async_writer_connection_pool,
     get_random_reader_connection_pool,
-    get_async_readers_connection_pools,
 )
 
 

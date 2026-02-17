@@ -47,14 +47,14 @@ def convert_value(expected_type: type, value: Any) -> Any:  # noqa: PLR0912, PLR
 
     if expected_type is list:
         if isinstance(value, list):
-            return value  # type: ignore[return-value]
+            return value
         if isinstance(value, str):
             return value.split(",")
         raise ValueError(f"Expected list or str, got {type(value)}")
 
     if expected_type in (set, tuple):
         if isinstance(value, expected_type):
-            return value  # type: ignore[return-value]
+            return value
         return value.split(",")
 
     if expected_type is dict:

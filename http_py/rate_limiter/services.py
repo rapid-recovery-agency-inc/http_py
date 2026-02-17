@@ -1,10 +1,10 @@
-from collections.abc import Callable
+from http import HTTPStatus
+from collections.abc import Callable, Awaitable
 
-from starlette import status
-from starlette.responses import Response
+from starlette.responses import Response as StarletteResponse
 
 from http_py.context import ContextFactory
-from http_py.request import Request, NextCallable, extract_request_data
+from http_py.request import Request, Response, NextCallable, extract_request_data
 from http_py.logging.services import create_logger
 from http_py.rate_limiter.types import RateLimitException
 from http_py.rate_limiter.utils import assert_capacity
@@ -18,10 +18,11 @@ async def rate_limiter_middleware(
     request: Request,
     call_next: NextCallable,
     create_service_context: ContextFactory,
-):
+) -> Response:
     path = request.url.path
     if path in path_whitelist:
-        return await call_next(request)
+        response: Response = await call_next(request)
+        return response
 
     ctx = await create_service_context(request)
     req_data = await extract_request_data(request)
@@ -36,18 +37,19 @@ async def rate_limiter_middleware(
             detail,
             request_body,
         )
-        return Response(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        return StarletteResponse(
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
             content=f"{detail} - BODY:{request_body} - HEADERS:{headers}",
         )
 
-    return await call_next(request)
+    response = await call_next(request)
+    return response
 
 
 def create_rate_limiter_middleware(
     path_whitelist: list[str], create_service_context: ContextFactory
-) -> Callable:
-    async def func(request: Request, call_next: NextCallable):
+) -> Callable[[Request, NextCallable], Awaitable[Response]]:
+    async def func(request: Request, call_next: NextCallable) -> Response:
         return await rate_limiter_middleware(
             path_whitelist, request, call_next, create_service_context
         )

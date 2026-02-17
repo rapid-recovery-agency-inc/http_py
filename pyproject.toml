@@ -19,7 +19,7 @@ starlette = "^0.45.0"
 
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.15.0"
+ruff = "0.15.1"
 pre-commit = "^4.5.1"
 mypy = "1.19.1"
 
@@ -33,6 +33,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 88
 target-version = "py313"
+exclude = ["examples"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -84,9 +85,6 @@ mypy_path = "."
 python_version = "3.13"
 strict = true
 implicit_reexport = true  # Insightt has convention of not using __all__
-plugins = [
-  "pydantic.mypy"
-]
 exclude = [
-    'shared/h3.py'
+    'examples/*'
 ]

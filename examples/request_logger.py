@@ -57,11 +57,6 @@ def create_app_with_request_logging():
     from fastapi import FastAPI
     from starlette.middleware.base import BaseHTTPMiddleware
 
-    from http_py.postgres import (
-        cleanup_connections_pools,
-        warm_up_connections_pools,
-    )
-
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # Startup: initialize database pools

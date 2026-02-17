@@ -68,7 +68,7 @@ async def fetch_rate_limiter_rule(
         return cast(RateLimiterRule, cached_value)
 
     # Calculation
-    async with ctx.reader_pool.connection() as conn:
+    async with ctx.reader.connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
                 """
@@ -127,6 +127,7 @@ async def fetch_rate_limiter_count(
     result = await asyncio.gather(monthly_count, daily_count, hourly_count)
     count = RateLimiterRequestCount(
         path=args.path,
+        product_name=args.product_name,
         monthly_count=result[0],
         daily_count=result[1],
         hourly_count=result[2],
@@ -143,7 +144,7 @@ async def fetch_rate_limiter_monthly_count(
     month = now.month
     month_key = (year * 100) + month
     try:
-        async with ctx.reader_pool.connection() as conn:
+        async with ctx.reader.connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
                     """
@@ -169,8 +170,8 @@ async def fetch_rate_limiter_monthly_count(
         return int(count)
     except PoolTimeout as e:
         meta = {
-            "stats": args.ctx.reader_pool.get_stats(),
-            "timeout": args.ctx.reader_pool.timeout,
+            "stats": ctx.reader.get_stats(),
+            "timeout": ctx.reader.timeout,
         }
         logger.error(
             "fetch_rate_limiter_monthly_count: PoolTimeout occurred meta=%r, "
@@ -190,7 +191,7 @@ async def fetch_rate_limiter_daily_count(
     day = now.day
     day_key = (((year * 100) + month) * 100) + day
     try:
-        async with ctx.reader_pool.connection() as conn:
+        async with ctx.reader.connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
                     """
@@ -216,8 +217,8 @@ async def fetch_rate_limiter_daily_count(
         return int(count)
     except PoolTimeout as e:
         meta = {
-            "stats": ctx.reader_pool.get_stats(),
-            "timeout": ctx.reader_pool.timeout,
+            "stats": ctx.reader.get_stats(),
+            "timeout": ctx.reader.timeout,
         }
         logger.error(
             "fetch_rate_limiter_daily_count: PoolTimeout occurred meta=%r, exc_info=%r",
@@ -237,7 +238,7 @@ async def fetch_rate_limiter_hourly_count(
     hour = now.hour
     hour_key = ((((year * 100) + month) * 100 + day) * 100) + hour
     try:
-        async with ctx.reader_pool.connection() as conn:
+        async with ctx.reader.connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
                     """
@@ -263,8 +264,8 @@ async def fetch_rate_limiter_hourly_count(
         return int(count)
     except PoolTimeout as e:
         meta = {
-            "stats": ctx.reader_pool.get_stats(),
-            "timeout": ctx.reader_pool.timeout,
+            "stats": ctx.reader.get_stats(),
+            "timeout": ctx.reader.timeout,
         }
         logger.error(
             "fetch_rate_limiter_hourly_count: PoolTimeout occurred meta=%r, "

@@ -16,8 +16,5 @@ def validate_keys(data: Mapping[str, Any], mandatory_keys: list[str]) -> None:
     """
     missing = [k for k in mandatory_keys if k not in data]
     if missing:
-        msg = (
-            "Environment is missing mandatory keys: "
-            f"{', '.join(missing)}"
-        )
+        msg = f"Environment is missing mandatory keys: {', '.join(missing)}"
         raise ValueError(msg)

@@ -48,8 +48,10 @@ class CustomAsyncTestCase(unittest.IsolatedAsyncioTestCase):
     Subclasses must set `env` and `migrations_folder_path` class attributes.
     """
 
-    env: E2ETestEnvironment | None = None
-    migrations_folder_path: str | None = None
+    env: E2ETestEnvironment
+    migrations_folder_path: str
+    database_pool: AsyncConnectionPool
+    async_connection: psycopg.AsyncConnection
 
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
@@ -88,5 +90,3 @@ class CustomAsyncTestCase(unittest.IsolatedAsyncioTestCase):
             query = sql.SQL("DROP DATABASE {}").format(sql.Identifier(self.db_name))
             await cur.execute(query)
         await self.async_connection.close()
-        self.database_pool = None
-        self.async_connection = None

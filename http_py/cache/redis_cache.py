@@ -15,13 +15,11 @@ Example usage:
 """
 
 import json
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
+from http_py.cache.types import AsyncRedisClient
 from http_py.logging.services import create_logger
 
-
-if TYPE_CHECKING:
-    from redis.asyncio import Redis
 
 logger = create_logger(__name__)
 
@@ -41,7 +39,7 @@ class RedisCache:
 
     def __init__(
         self,
-        client: "Redis[bytes]",
+        client: AsyncRedisClient,
         prefix: str = "cache:",
     ):
         self._client = client
@@ -144,19 +142,6 @@ class RedisCache:
                 await self._client.delete(*keys)
             if cursor == 0:
                 break
-
-    async def get_ttl(self, key: str) -> int | None:
-        """Get the remaining TTL for a key in seconds.
-
-        Args:
-            key: The cache key to check.
-
-        Returns:
-            Remaining TTL in seconds, -1 if key has no TTL, -2 if key doesn't exist.
-        """
-        redis_key = self._make_key(key)
-        ttl = await self._client.ttl(redis_key)
-        return ttl if ttl >= -2 else None
 
     async def set_with_nx(
         self,

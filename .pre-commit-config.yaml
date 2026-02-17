@@ -10,16 +10,15 @@ repos:
       - id: ruff
         name: ruff (E501 only; fail leftovers)
         args: [ "--select", "E501" ]
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.1
-    hooks:
-    - id: mypy
-#      args: [--strict, --implicit-reexport, --explicit-package-bases, --ignore-missing-imports, --follow-imports=normal]
-      args: [ --ignore-missing-imports, --no-incremental]
-      additional_dependencies:
-        - "boto3-stubs"
   - repo: local
     hooks:
+      - id: mypy
+        name: mypy
+        entry: poetry run mypy http_py
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
       - id: unittests
         name: unittests
         entry: poetry run python -m unittest discover -v

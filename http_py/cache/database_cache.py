@@ -37,10 +37,8 @@ class DatabaseCache:
     def __init__(
         self,
         pool: AsyncConnectionPool,
-        table_name: str = "cache",
     ):
         self._pool = pool
-        self._table_name = table_name
 
     async def get(self, key: str) -> Any | None:
         """Retrieve a value from the cache.
@@ -57,9 +55,9 @@ class DatabaseCache:
         async with self._pool.connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    f"""
+                    """
                     SELECT value, expires_at
-                    FROM {self._table_name}
+                    FROM public.cache
                     WHERE key = %(key)s
                     LIMIT 1
                     """,
@@ -107,8 +105,8 @@ class DatabaseCache:
         async with self._pool.connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    f"""
-                    INSERT INTO {self._table_name} (key, plain_key, value, expires_at)
+                    """
+                    INSERT INTO public.cache (key, plain_key, value, expires_at)
                     VALUES (%(key)s, %(plain_key)s, %(value)s, %(expires_at)s)
                     ON CONFLICT (key) DO UPDATE SET
                         value = EXCLUDED.value,
@@ -134,8 +132,8 @@ class DatabaseCache:
         async with self._pool.connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    f"""
-                    DELETE FROM {self._table_name}
+                    """
+                    DELETE FROM public.cache
                     WHERE key = %(key)s
                     """,
                     {"key": hashed_key},
@@ -156,9 +154,9 @@ class DatabaseCache:
         async with self._pool.connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    f"""
+                    """
                     SELECT 1
-                    FROM {self._table_name}
+                    FROM public.cache
                     WHERE key = %(key)s
                       AND (expires_at IS NULL OR expires_at > %(now)s)
                     LIMIT 1
@@ -173,7 +171,7 @@ class DatabaseCache:
         """Remove all items from the cache."""
         async with self._pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(f"TRUNCATE TABLE {self._table_name}")
+                await cur.execute("TRUNCATE TABLE public.cache")
 
     async def cleanup_expired(self) -> int:
         """Remove all expired items from the cache.
@@ -186,8 +184,8 @@ class DatabaseCache:
         async with self._pool.connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    f"""
-                    DELETE FROM {self._table_name}
+                    """
+                    DELETE FROM public.cache
                     WHERE expires_at IS NOT NULL AND expires_at <= %(now)s
                     """,
                     {"now": now_in_seconds},

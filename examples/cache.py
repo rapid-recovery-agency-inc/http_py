@@ -14,7 +14,6 @@ from http_py.cache import (
     RedisCache,
     DatabaseCache,
     InMemoryCache,
-    DEFAULT_EXPIRATION_IN_SECONDS,
 )
 
 

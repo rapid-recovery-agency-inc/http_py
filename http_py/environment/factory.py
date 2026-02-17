@@ -8,11 +8,13 @@ frozen ``@dataclass`` type.  Then re-export the bound ``env`` and
     from dataclasses import dataclass, field
     from http_py.environment import create_environment
 
+
     @dataclass(frozen=True)
     class AppEnv:
         DEBUG: bool = False
         DB_HOST: str = "localhost"
         DB_PORT: int = 5432
+
 
     _manager = create_environment(AppEnv)
     env = _manager.env
@@ -22,15 +24,10 @@ frozen ``@dataclass`` type.  Then re-export the bound ``env`` and
     set_environment(os.environ)
 """
 
-from typing import TypeVar
-
 from http_py.environment.manager import EnvironmentManager
 
 
-T = TypeVar("T")
-
-
-def create_environment(
+def create_environment[T](
     dataclass_type: type[T],
     *,
     mandatory_keys: list[str] | None = None,

@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 
-from http_py.types import Context
+from http_py.context import Context
 
 
 @dataclass(frozen=True)
 class RequestArgs:
     ctx: Context
     path: str
+    from_cache: bool
     product_name: str | None
     product_module: str | None
     product_feature: str | None

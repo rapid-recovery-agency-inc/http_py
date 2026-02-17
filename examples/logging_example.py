@@ -4,7 +4,7 @@ This example demonstrates the create_logger factory and CustomLogger class.
 Set LOG_LEVEL environment variable: DEBUG, INFO, WARNING, ERROR, CRITICAL
 """
 
-from http_py.logging import LogLevel, CustomLogger, create_logger
+from http_py.logging import create_logger
 
 
 # ──────────────────────────────────────────────────────────────────────

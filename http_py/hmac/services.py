@@ -1,6 +1,7 @@
 import hmac
 
-from http_py.types import Request, HMACEnvironment
+from http_py.types import HMACEnvironment
+from http_py.request import Request
 from http_py.hmac.utils import sign
 from http_py.hmac.constants import (
     HMAC_INVALID_SIGNATURE,

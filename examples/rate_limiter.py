@@ -61,11 +61,6 @@ def create_app_with_rate_limiting():
     from starlette.responses import JSONResponse
     from starlette.middleware.base import BaseHTTPMiddleware
 
-    from http_py.postgres import (
-        cleanup_connections_pools,
-        warm_up_connections_pools,
-    )
-
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # Startup: initialize database pools

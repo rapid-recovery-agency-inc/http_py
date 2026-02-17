@@ -9,7 +9,6 @@ Exports:
 from http_py.logging.services import (
     LogLevel,
     CustomLogger,
-    load_os_vars,
     create_logger,
 )
 
@@ -18,5 +17,4 @@ __all__ = [
     "CustomLogger",
     "LogLevel",
     "create_logger",
-    "load_os_vars",
 ]

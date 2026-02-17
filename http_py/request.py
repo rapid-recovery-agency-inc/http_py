@@ -1,6 +1,7 @@
 import json
+from typing import Any, Protocol
 from dataclasses import dataclass
-from collections.abc import Callable, Protocol, Awaitable
+from collections.abc import Callable, Awaitable
 
 from http_py.logging.services import create_logger
 
@@ -8,21 +9,47 @@ from http_py.logging.services import create_logger
 logger = create_logger(__name__)
 
 
-class Request(Protocol):
-    url: object
-    headers: object
-    method: str
-    query_params: object
+class Url(Protocol):
+    path: str
 
-    async def body(self) -> bytes:
-        return
+
+class QueryParams(Protocol):
+    def get(
+        self,
+        key: str,
+    ) -> str | None: ...
+
+    def keys(self) -> list[str]: ...
+
+    def __getitem__(self, key: str) -> str: ...
+
+
+class Headers(Protocol):
+    def __str__(self) -> str: ...
+    def get(self, key: str, default: str | None = None) -> str | None: ...
+
+
+class Request(Protocol):
+    url: Url
+    headers: Headers
+    method: str
+    query_params: QueryParams
+
+    async def body(self) -> bytes: ...
+
+
+class StreamingResponse(Protocol):
+    headers: Headers
+    body_iterator: Any  # Should be an async iterator yielding bytes
 
 
 class Response(Protocol):
-    pass
+    status_code: int
+    body: bytes | memoryview[int]
 
 
 NextCallable = Callable[[Request], Awaitable[Response]]
+StreamingNextCallable = Callable[[Request], Awaitable[StreamingResponse]]
 
 
 @dataclass(frozen=True)

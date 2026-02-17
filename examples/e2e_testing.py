@@ -4,10 +4,9 @@ This example demonstrates end-to-end testing utilities
 with isolated database support for each test.
 """
 
-from typing import Any
 from dataclasses import dataclass
 
-from http_py.e2e_testing import CustomAsyncTestCase, get_migration_files_content
+from http_py.e2e_testing import CustomAsyncTestCase
 
 
 # ──────────────────────────────────────────────────────────────────────

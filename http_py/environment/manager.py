@@ -1,6 +1,6 @@
 """Generic environment manager bound to a frozen dataclass shape."""
 
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 from collections.abc import Mapping
 
 from http_py.environment.coercion import to_dataclass_dict
@@ -10,7 +10,7 @@ from http_py.environment.validation import validate_keys
 T = TypeVar("T")
 
 
-class EnvironmentManager(Generic[T]):
+class EnvironmentManager[T]:
     """Manages environment state for a frozen dataclass type ``T``.
 
     State is accumulated via successive :meth:`set_environment` calls.
@@ -49,7 +49,7 @@ class EnvironmentManager(Generic[T]):
 
     def env(self) -> T:
         """Return a **new** frozen ``T`` instance from the accumulated state."""
-        return self._dataclass_type(**self._state)  # type: ignore[call-arg]
+        return self._dataclass_type(**self._state)
 
     def set_environment(self, raw: Mapping[str, Any]) -> None:
         """Coerce *raw* and merge it on top of the current state.
@@ -58,9 +58,9 @@ class EnvironmentManager(Generic[T]):
         keys.  This allows layering multiple sources (e.g. ``os.environ``
         first, then a secret manager) with deterministic precedence::
 
-            set_environment(os.environ)          # base layer
-            set_environment(secret_manager_dict) # overrides base
-            set_environment(os.environ)          # overrides secrets again
+            set_environment(os.environ)  # base layer
+            set_environment(secret_manager_dict)  # overrides base
+            set_environment(os.environ)  # overrides secrets again
         """
         coerced = to_dataclass_dict(self._dataclass_type, raw)
         self._state = {**self._state, **coerced}
