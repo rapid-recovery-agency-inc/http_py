@@ -4,7 +4,7 @@ from string import Template
 from psycopg_pool import ConnectionPool, AsyncConnectionPool
 
 from http_py.types import PostgressEnvironment
-from http_py.logging.logging import create_logger
+from http_py.logging.services import create_logger
 
 
 __async_writer_cached_connection_pool: None | AsyncConnectionPool = None

@@ -10,7 +10,7 @@ from collections.abc import Callable, Awaitable
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from http_py.logging.logging import create_logger
+from http_py.logging.services import create_logger
 from http_py.exception_handling.types import HandlerRule
 
 

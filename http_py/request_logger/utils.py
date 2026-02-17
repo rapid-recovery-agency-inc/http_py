@@ -1,6 +1,6 @@
 from psycopg_pool import PoolTimeout
 
-from http_py.logging.logging import create_logger
+from http_py.logging.services import create_logger
 from http_py.request_logger.types import RequestArgs
 
 

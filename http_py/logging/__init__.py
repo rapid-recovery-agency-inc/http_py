@@ -6,7 +6,7 @@ Exports:
     - LogLevel: Enum of standard log levels
 """
 
-from http_py.logging.logging import (
+from http_py.logging.services import (
     LogLevel,
     CustomLogger,
     load_os_vars,

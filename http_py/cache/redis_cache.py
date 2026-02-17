@@ -17,7 +17,7 @@ Example usage:
 import json
 from typing import Any, TYPE_CHECKING
 
-from http_py.logging.logging import create_logger
+from http_py.logging.services import create_logger
 
 
 if TYPE_CHECKING:

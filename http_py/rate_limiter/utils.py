@@ -1,5 +1,4 @@
 import asyncio
-from os import path
 from typing import cast
 from datetime import UTC, datetime
 
@@ -7,7 +6,7 @@ from psycopg_pool import PoolTimeout
 
 from http_py.context import Context
 from http_py.request import ExtractedRequestData
-from http_py.logging.logging import create_logger
+from http_py.logging.services import create_logger
 from http_py.rate_limiter.types import (
     RateLimiterRule,
     RateLimitException,
@@ -83,7 +82,7 @@ async def fetch_rate_limiter_rule(
                     rate_limiter_rule
                 WHERE
                     path = %(path)s
-                    AND product_name = %(product_name)s 
+                    AND product_name = %(product_name)s
                 LIMIT
                     1
                 """,

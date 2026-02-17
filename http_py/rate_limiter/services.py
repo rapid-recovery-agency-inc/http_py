@@ -5,7 +5,7 @@ from starlette.responses import Response
 
 from http_py.context import ContextFactory
 from http_py.request import Request, NextCallable, extract_request_data
-from http_py.logging.logging import create_logger
+from http_py.logging.services import create_logger
 from http_py.rate_limiter.types import RateLimitException
 from http_py.rate_limiter.utils import assert_capacity
 

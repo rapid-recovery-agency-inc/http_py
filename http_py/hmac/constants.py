@@ -1,0 +1,3 @@
+HMAC_MISSING_SIGNATURE = "Missing HMAC Signature"
+HMAC_INVALID_SIGNATURE = "Invalid HMAC Signature"
+HMAC_UNSUPPORTED_METHOD = "Unsupported HTTP Method"

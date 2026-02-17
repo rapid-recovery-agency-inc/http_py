@@ -25,3 +25,14 @@ class PostgressEnvironment(Protocol):
     DB_MIN_POOL_SIZE: int
     DB_MAX_POOL_SIZE: int
     DB_POOL_MAX_IDLE_TIME_SECONDS: int
+
+
+@runtime_checkable
+class HMACEnvironment(Protocol):
+    SECRETS: list[str]
+    HMAC_HEADER_NAME: str
+
+
+@runtime_checkable
+class E2ETestEnvironment(Protocol):
+    TEST_DATABASE_URL: str

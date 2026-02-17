@@ -6,7 +6,7 @@ from starlette.concurrency import iterate_in_threadpool
 
 from http_py.context import ContextFactory
 from http_py.request import Request, NextCallable, extract_request_data
-from http_py.logging.logging import create_logger
+from http_py.logging.services import create_logger
 from http_py.request_logger.types import RequestArgs
 from http_py.request_logger.utils import save_request
 

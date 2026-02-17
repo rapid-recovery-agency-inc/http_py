@@ -18,8 +18,10 @@ class RateLimiterRequestCount(NamedTuple):
 
     def __str__(self: Self) -> str:
         return (
-            f"RateLimiterRequestCount(path={self.path}, product_name={self.product_name}, "
-            f"daily_count={self.daily_count}, monthly_count={self.monthly_count}, "
+            f"RateLimiterRequestCount(path={self.path}, "
+            f"product_name={self.product_name}, "
+            f"daily_count={self.daily_count}, "
+            f"monthly_count={self.monthly_count}, "
             f"hourly_count={self.hourly_count})"
         )
 

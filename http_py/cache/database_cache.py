@@ -7,7 +7,7 @@ from typing import Any
 
 from psycopg_pool import AsyncConnectionPool
 
-from http_py.logging.logging import create_logger
+from http_py.logging.services import create_logger
 
 
 logger = create_logger(__name__)

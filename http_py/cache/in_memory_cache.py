@@ -1,8 +1,9 @@
 import time
 from typing import Any
 
-from http_py.cache.models import CacheItem
 from http_py.cache.utils import is_cache_item_valid
+from http_py.cache.models import CacheItem
+
 
 DEFAULT_EXPIRATION_IN_SECONDS = 300  # 5 minutes
 

@@ -1,16 +1,14 @@
 import os
 import time
 import unittest
-from typing import cast, TypedDict
-from unittest.mock import Mock, patch
+from typing import TypedDict
 
 import psycopg
 from psycopg import sql
 from psycopg_pool import AsyncConnectionPool
 
-from shared.context import ServiceContext
-from http_py.logging.logging import create_logger
-from http_py.environment.environment import env
+from http_py.types import E2ETestEnvironment
+from http_py.logging.services import create_logger
 
 
 logger = create_logger(__name__)
@@ -24,28 +22,45 @@ class Migration(TypedDict):
 __migrations_content: list[Migration] = []
 
 
-def get_migration_files_content() -> list[Migration]:
+def get_migration_files_content(migration_folder_path: str) -> list[Migration]:
     global __migrations_content  # noqa: PLW0602
     if len(__migrations_content) > 0:
         return __migrations_content
-    migrations_dir = os.path.join("etc", "migrations")
     migration_files = []
-    for file in os.listdir(migrations_dir):
+    for file in os.listdir(migration_folder_path):
         if file.endswith(".sql"):
             migration_files.append(file)
+        else:
+            logger.warning(
+                f"get_migration_files_content: Skipping non-SQL file "
+                f"'{file}' in '{migration_folder_path}'"
+            )
     migration_files.sort()
     for file in migration_files:
-        with open(os.path.join(migrations_dir, file)) as f:
+        with open(os.path.join(migration_folder_path, file)) as f:
             __migrations_content.append(Migration(name=file, content=f.read()))
     return __migrations_content
 
 
 class CustomAsyncTestCase(unittest.IsolatedAsyncioTestCase):
-    service_context: ServiceContext | None = None
+    """Async test case with isolated database per test.
+
+    Subclasses must set `env` and `migrations_folder_path` class attributes.
+    """
+
+    env: E2ETestEnvironment | None = None
+    migrations_folder_path: str | None = None
 
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
-        connection_string = env().TEST_DATABASE_URL
+        if self.env is None:
+            raise ValueError("CustomAsyncTestCase: 'env' must be set before asyncSetUp")
+        if self.migrations_folder_path is None:
+            raise ValueError(
+                "CustomAsyncTestCase: 'migrations_folder_path' must be set "
+                "before asyncSetUp"
+            )
+        connection_string = self.env.TEST_DATABASE_URL
         self.db_name = f"test_db_{os.getpid()}_{int(time.time())}"
         self.async_connection = await psycopg.AsyncConnection.connect(
             connection_string,
@@ -60,9 +75,10 @@ class CustomAsyncTestCase(unittest.IsolatedAsyncioTestCase):
             open=False,
         )
         await self.database_pool.open()
+        migrations = get_migration_files_content(self.migrations_folder_path)
         async with self.database_pool.connection() as conn:
             async with conn.cursor() as cur:
-                for migration in get_migration_files_content():
+                for migration in migrations:
                     await cur.execute(migration["content"])
 
     async def asyncTearDown(self) -> None:
@@ -74,29 +90,3 @@ class CustomAsyncTestCase(unittest.IsolatedAsyncioTestCase):
         await self.async_connection.close()
         self.database_pool = None
         self.async_connection = None
-
-    def get_service_context(self) -> ServiceContext:
-        if self.service_context is not None:
-            return self.service_context
-
-        self.service_context = ServiceContext(
-            writer_pool=self.database_pool,
-            reader_pool=self.database_pool,
-        )
-        return self.service_context
-
-    def setUp(self) -> None:
-        super().setUp()
-        patched_load_env: Mock = cast(
-            Mock, patch("http_py.aws.secret_manager.load_aws_env")
-        )
-        patched_load_env.return_value = None
-
-
-class CustomTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        patched_load_env: Mock = cast(
-            Mock, patch("http_py.aws.secret_manager.load_aws_env")
-        )
-        patched_load_env.return_value = None

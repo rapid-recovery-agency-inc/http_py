@@ -5,7 +5,7 @@ from boto3.session import Session
 from mypy_boto3_secretsmanager.client import SecretsManagerClient
 
 from http_py.types import AWSEnvironment
-from http_py.logging.logging import create_logger
+from http_py.logging.services import create_logger
 
 
 logger = create_logger(__name__)
@@ -36,7 +36,7 @@ def load_aws_env(environment: AWSEnvironment) -> dict[str, str]:
 
     secret_values = fetch_aws_secret(environment_secret_name, aws_region)
     if "SECRETS_SECRET_NAME" not in secret_values:
-        msg = f"load_aws_env: ValueError: SECRETS_SECRET_NAME not found in secrets"
+        msg = "load_aws_env: ValueError: SECRETS_SECRET_NAME not found in secrets"
         logger.error(msg)
         raise ValueError(msg)
 
