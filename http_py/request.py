@@ -45,7 +45,7 @@ class StreamingResponse(Protocol):
 
 class Response(Protocol):
     status_code: int
-    body: bytes | memoryview[int]
+    body: bytes | memoryview
 
 
 NextCallable = Callable[[Request], Awaitable[Response]]
