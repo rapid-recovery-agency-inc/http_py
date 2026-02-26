@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 from psycopg_pool import PoolTimeout
 
-from http_py.context import Context
+from http_py.context import ContextProtocol
 from http_py.request import ExtractedRequestData
 from http_py.logging.services import create_logger
 from http_py.rate_limiter.types import (
@@ -21,7 +21,7 @@ RULE_CACHING_EXPIRATION_IN_SECONDS = 300
 logger = create_logger(__name__)
 
 
-async def assert_capacity(args: ExtractedRequestData, ctx: Context) -> None:
+async def assert_capacity(args: ExtractedRequestData, ctx: ContextProtocol) -> None:
     async with asyncio.TaskGroup() as tg:
         task1 = tg.create_task(fetch_rate_limiter_rule(args, ctx))
         task2 = tg.create_task(fetch_rate_limiter_count(args, ctx))
@@ -54,7 +54,7 @@ async def assert_capacity(args: ExtractedRequestData, ctx: Context) -> None:
 
 
 async def fetch_rate_limiter_rule(
-    args: ExtractedRequestData, ctx: Context
+    args: ExtractedRequestData, ctx: ContextProtocol
 ) -> RateLimiterRule | None:
     if args.path is None:
         raise ValueError("fetch_rate_limiter_rule: 'path' is required")
@@ -105,7 +105,7 @@ async def fetch_rate_limiter_rule(
 
 
 async def fetch_rate_limiter_count(
-    args: ExtractedRequestData, ctx: Context
+    args: ExtractedRequestData, ctx: ContextProtocol
 ) -> RateLimiterRequestCount | None:
     if args.path is None:
         raise ValueError("fetch_rate_limiter_count: 'path' is required")
@@ -137,7 +137,7 @@ async def fetch_rate_limiter_count(
 
 
 async def fetch_rate_limiter_monthly_count(
-    args: ExtractedRequestData, ctx: Context
+    args: ExtractedRequestData, ctx: ContextProtocol
 ) -> int:
     now = datetime.now(tz=UTC)
     year = now.year
@@ -183,7 +183,7 @@ async def fetch_rate_limiter_monthly_count(
 
 
 async def fetch_rate_limiter_daily_count(
-    args: ExtractedRequestData, ctx: Context
+    args: ExtractedRequestData, ctx: ContextProtocol
 ) -> int:
     now = datetime.now(tz=UTC)
     year = now.year
@@ -229,7 +229,7 @@ async def fetch_rate_limiter_daily_count(
 
 
 async def fetch_rate_limiter_hourly_count(
-    args: ExtractedRequestData, ctx: Context
+    args: ExtractedRequestData, ctx: ContextProtocol
 ) -> int:
     now = datetime.now(tz=UTC)
     year = now.year

@@ -99,6 +99,7 @@ def get_async_readers_connection_pools(
 def get_random_reader_connection_pool(env: PostgressEnvironment) -> AsyncConnectionPool:
     """Get random reader connection pool."""
     pools = get_async_readers_connection_pools(env)
+    # S311: Not used for cryptography, safe to suppress
     return random.choice(pools)  # noqa: S311
 
 

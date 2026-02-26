@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 
-from http_py.context import Context
+from http_py.context import ContextProtocol
 
 
 @dataclass(frozen=True)
 class RequestArgs:
-    ctx: Context
+    ctx: ContextProtocol
     path: str
     from_cache: bool
     product_name: str | None

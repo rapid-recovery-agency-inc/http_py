@@ -34,6 +34,7 @@ class Request(Protocol):
     headers: Headers
     method: str
     query_params: QueryParams
+    state: object
 
     async def body(self) -> bytes: ...
 
