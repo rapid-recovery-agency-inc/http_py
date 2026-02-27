@@ -1,4 +1,5 @@
 import hmac
+from collections.abc import Callable, Awaitable
 
 from http_py.types import HMACEnvironment
 from http_py.request import Request
@@ -40,3 +41,12 @@ async def require_hmac_signature(request: Request, env: HMACEnvironment) -> None
     # Raise an exception if the signature is invalid
     if not is_valid_signature:
         raise HMACException(status_code=401, detail=HMAC_INVALID_SIGNATURE)
+
+
+async def hmac_dependency_factory(
+    env: HMACEnvironment,
+) -> Callable[[Request], Awaitable[None]]:
+    async def dependency(request: Request) -> None:
+        await require_hmac_signature(request, env)
+
+    return dependency
