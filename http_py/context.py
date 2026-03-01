@@ -44,7 +44,7 @@ class Context(ContextProtocol):
         self.writer_pool = writer_pool
 
 
-async def build_context_factory_dependency(
+def build_context_factory_dependency(
     env: PostgressEnvironment,
 ) -> ContextFactoryDependency:
     writer_pool = get_async_writer_connection_pool(env)
