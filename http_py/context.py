@@ -30,7 +30,7 @@ ContextFactory = Callable[[Request], Awaitable[ContextProtocol]]
 ContextFactoryDependency = Callable[[Request], Awaitable[None]]
 
 
-class ServiceContext(ContextProtocol):
+class Context(ContextProtocol):
     pool: AsyncConnectionPool
     writer_pool: AsyncConnectionPool
     reader_pools: list[AsyncConnectionPool]
@@ -51,7 +51,7 @@ async def build_context_factory_dependency(
     reader_pools = get_async_readers_connection_pools(env)
 
     async def factory(request: Request) -> None:
-        service_context = ServiceContext(
+        service_context = Context(
             writer_pool=writer_pool,
             reader_pools=reader_pools,
         )
@@ -70,8 +70,8 @@ async def build_context_factory(
     reader_pools = get_async_readers_connection_pools(env)
 
     async def factory(_: Request) -> ContextProtocol:
-        # ServiceContext implements Context protocol
-        return ServiceContext(
+        # Context implements Context protocol
+        return Context(
             writer_pool=writer_pool,
             reader_pools=reader_pools,
         )

@@ -10,7 +10,7 @@ from typing import Final
 
 from starlette.requests import Request
 
-from http_py.context import build_context, ServiceContext
+from http_py.context import build_context, Context
 from http_py.request_logger import create_request_logger_middleware
 
 
@@ -33,7 +33,7 @@ REQUEST_LOGGER_WHITELIST: Final[list[str]] = [
 # ──────────────────────────────────────────────────────────────────────
 
 
-async def create_service_context(request: Request) -> ServiceContext:
+async def create_service_context(request: Request) -> Context:
     """Context factory - provides database pools to middleware."""
     return await build_context(request)
 
