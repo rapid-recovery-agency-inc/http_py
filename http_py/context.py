@@ -47,10 +47,9 @@ class Context(ContextProtocol):
 def build_context_factory_dependency(
     env: PostgressEnvironment,
 ) -> ContextFactoryDependency:
-    writer_pool = get_async_writer_connection_pool(env)
-    reader_pools = get_async_readers_connection_pools(env)
-
-    async def factory(request: Request) -> None:
+    async def dependency(request: Request) -> None:
+        writer_pool = get_async_writer_connection_pool(env)
+        reader_pools = get_async_readers_connection_pools(env)
         service_context = Context(
             writer_pool=writer_pool,
             reader_pools=reader_pools,
@@ -60,7 +59,7 @@ def build_context_factory_dependency(
             request.state = type("state", (), {})()
         request.state.service_context = service_context  # type: ignore[attr-defined]
 
-    return factory
+    return dependency
 
 
 async def build_context_factory(
