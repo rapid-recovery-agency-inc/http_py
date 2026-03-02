@@ -3,6 +3,8 @@ from typing import Any, Protocol
 from dataclasses import dataclass
 from collections.abc import Callable, Awaitable
 
+from starlette.requests import Request
+
 from http_py.logging.services import create_logger
 
 
@@ -27,16 +29,6 @@ class QueryParams(Protocol):
 class Headers(Protocol):
     def __str__(self) -> str: ...
     def get(self, key: str, default: str | None = None) -> str | None: ...
-
-
-class Request(Protocol):
-    url: Url
-    headers: Headers
-    method: str
-    query_params: QueryParams
-    state: object
-
-    async def body(self) -> bytes: ...
 
 
 class StreamingResponse(Protocol):

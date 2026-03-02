@@ -1,10 +1,11 @@
 from http import HTTPStatus
 from collections.abc import Callable, Awaitable
 
+from starlette.requests import Request
 from starlette.responses import Response as StarletteResponse
 
 from http_py.context import ContextFactory
-from http_py.request import Request, Response, NextCallable, extract_request_data
+from http_py.request import Response, NextCallable, extract_request_data
 from http_py.logging.services import create_logger
 from http_py.rate_limiter.types import RateLimitException
 from http_py.rate_limiter.utils import assert_capacity

@@ -1,10 +1,10 @@
 from collections.abc import Callable, Awaitable
 
+from starlette.requests import Request
 from starlette.concurrency import iterate_in_threadpool
 
 from http_py.context import ContextFactory
 from http_py.request import (
-    Request,
     StreamingResponse,
     extract_request_data,
     StreamingNextCallable,

@@ -3,9 +3,9 @@ from typing import Protocol
 from collections.abc import Callable, Awaitable
 
 from psycopg_pool import AsyncConnectionPool
+from starlette.requests import Request
 
 from http_py.types import PostgressEnvironment
-from http_py.request import Request
 from http_py.postgres import (
     get_async_writer_connection_pool,
     get_async_readers_connection_pools,
@@ -54,10 +54,7 @@ def build_context_factory_dependency(
             writer_pool=writer_pool,
             reader_pools=reader_pools,
         )
-        # Defensive: ensure state exists
-        if not hasattr(request, "state"):
-            request.state = type("state", (), {})()
-        request.state.service_context = service_context  # type: ignore[attr-defined]
+        request.state.service_context = service_context
 
     return dependency
 
