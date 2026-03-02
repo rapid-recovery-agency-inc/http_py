@@ -27,7 +27,7 @@ class ContextProtocol(Protocol):
 
 
 ContextFactory = Callable[[Request], Awaitable[ContextProtocol]]
-ContextFactoryDependency = Callable[[Request], Awaitable[None]]
+ContextFactoryDependency = Callable[[Request], None]
 
 
 class Context(ContextProtocol):
@@ -47,14 +47,14 @@ class Context(ContextProtocol):
 def build_context_factory_dependency(
     env: PostgressEnvironment,
 ) -> ContextFactoryDependency:
-    async def dependency(request: Request) -> None:
+    def dependency(request: Request) -> None:
         writer_pool = get_async_writer_connection_pool(env)
         reader_pools = get_async_readers_connection_pools(env)
-        service_context = Context(
+        context = Context(
             writer_pool=writer_pool,
             reader_pools=reader_pools,
         )
-        request.state.service_context = service_context
+        request.state.context = context
 
     return dependency
 
