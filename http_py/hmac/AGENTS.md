@@ -94,23 +94,38 @@ Requires `HMACEnvironment` protocol from `http_py.types`:
 
 ```python
 from starlette.requests import Request
+from fastapi import Depends, FastAPI, Request
 from http_py.hmac import require_hmac_signature, HMACException
+
+from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class AppEnv:
     SECRETS: list[str] = field(default_factory=lambda: ["secret1", "secret2"])
     HMAC_HEADER_NAME: str = "X-HMAC-Signature"
 
-async def protected_endpoint(request: Request):
-    env = AppEnv()
+env = AppEnv()
+
+app = FastAPI()
+
+# Dependency for FastAPI: returns a function that validates the signature
+async def hmac_dependency(request: Request):
     try:
         await require_hmac_signature(request, env)
     except HMACException as e:
+        from fastapi.responses import JSONResponse
         return JSONResponse({"error": e.detail}, status_code=e.status_code)
-    
+
+@app.get("/protected")
+async def protected_endpoint(
+    request: Request,
+    _=Depends(hmac_dependency),
+):
     # Process authenticated request
-    return JSONResponse({"status": "ok"})
+    return {"status": "ok"}
 ```
+
+**Note:** If you use a dependency factory (e.g., to inject different envs), ensure the dependency itself is an async function that FastAPI can call directly, not a function returning a function.
 
 ### Client-Side (Signing)
 

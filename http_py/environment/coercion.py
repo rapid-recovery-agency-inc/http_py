@@ -110,7 +110,7 @@ def to_dataclass_dict(
 
     result: dict[str, Any] = {}
     for key in valid_field_names:
-        maybe_value = raw.get(key)
+        maybe_value = raw.get(key, None)
         if maybe_value is not None:
             if key in field_converters:
                 result[key] = field_converters[key](maybe_value)

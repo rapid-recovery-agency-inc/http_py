@@ -4,7 +4,7 @@ Provides request signature validation using HMAC-SHA256.
 """
 
 from http_py.hmac.utils import sign
-from http_py.hmac.services import require_hmac_signature, hmac_dependency_factory
+from http_py.hmac.services import require_hmac_signature, build_hmac_factory_dependency
 from http_py.hmac.constants import (
     HMAC_INVALID_SIGNATURE,
     HMAC_MISSING_SIGNATURE,
@@ -22,6 +22,6 @@ __all__ = [
     "HMACException",
     # Functions
     "require_hmac_signature",
-    "hmac_dependency_factory",
+    "build_hmac_factory_dependency",
     "sign",
 ]

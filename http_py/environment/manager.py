@@ -51,7 +51,9 @@ class EnvironmentManager[T]:
         """Return a **new** frozen ``T`` instance from the accumulated state."""
         return self._dataclass_type(**self._state)
 
-    def set_environment(self, raw: Mapping[str, Any]) -> None:
+    def set_environment(
+        self, raw: Mapping[str, Any], validate_values: bool = False
+    ) -> None:
         """Coerce *raw* and merge it on top of the current state.
 
         Later calls override values set by earlier calls for the same
