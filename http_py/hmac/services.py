@@ -43,7 +43,7 @@ async def require_hmac_signature(request: Request, env: HMACEnvironment) -> None
         raise HMACException(status_code=401, detail=HMAC_INVALID_SIGNATURE)
 
 
-async def build_hmac_factory_dependency(
+def build_hmac_factory_dependency(
     env: HMACEnvironment,
 ) -> HMACFactoryDependency:
     async def dependency(request: Request) -> None:
