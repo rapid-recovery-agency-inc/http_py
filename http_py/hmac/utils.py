@@ -35,7 +35,6 @@ def sign(
 
     # Build message
     message: str = f"{path_.strip()}{sorted_params_.strip()}{body_.strip()}"
-
     # Calculate the HMAC signature
     message_bytes = message.encode("utf-8")
     signature = hmac.new(
@@ -43,5 +42,4 @@ def sign(
         message_bytes,
         digestmod="sha256",
     ).hexdigest()
-
     return signature

@@ -1,7 +1,11 @@
+import time
 from collections.abc import Callable, Awaitable
 
+from starlette.types import ASGIApp
 from starlette.requests import Request
+from starlette.responses import Response
 from starlette.concurrency import iterate_in_threadpool
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from http_py.context import ContextFactory
 from http_py.request import (
@@ -17,7 +21,7 @@ from http_py.request_logger.utils import save_request
 logger = create_logger(__name__)
 
 
-async def request_logger_middleware(
+async def database_request_logger_middleware(
     path_whitelist: list[str],
     request: Request,
     call_next: StreamingNextCallable,
@@ -80,14 +84,37 @@ async def request_logger_middleware(
     return response
 
 
-def create_request_logger_middleware(
-    path_whitelist: list[str], create_service_context: ContextFactory
+class ConsoleRequestLoggerMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp, path_whitelist: list[str] | None = None):
+        super().__init__(app)
+        self.path_whitelist = path_whitelist or []
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        path = request.url.path
+        if path in self.path_whitelist:
+            response: Response = await call_next(request)
+            return response
+
+        start_time = time.perf_counter()
+        response = await call_next(request)
+        response_time = time.perf_counter() - start_time
+        message = f"{request.method} {request.url.path} \
+            {response.status_code} {response_time:.3f}s"
+        logger.info(message)
+        return response
+
+
+def create_database_request_logger_middleware(
+    path_whitelist: list[str],
+    create_service_context: ContextFactory,
 ) -> Callable[[Request, StreamingNextCallable], Awaitable[StreamingResponse]]:
     async def func(
         request: Request,
         call_next: StreamingNextCallable,
     ) -> StreamingResponse:
-        return await request_logger_middleware(
+        return await database_request_logger_middleware(
             path_whitelist, request, call_next, create_service_context
         )
 

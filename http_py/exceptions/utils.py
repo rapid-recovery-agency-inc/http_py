@@ -3,8 +3,8 @@ from collections.abc import Sequence
 
 from starlette.requests import Request
 
+from http_py.exceptions.types import FastAPIRequestValidationError
 from http_py.logging.services import create_logger
-from http_py.exception_handling.types import FastAPIRequestValidationError
 
 
 logger = create_logger(__name__)
@@ -24,7 +24,9 @@ async def build_validation_content(
     try:
         raw_body: bytes = await request.body()
         body_repr = raw_body[:2000].decode("utf-8", errors="replace")
-    except (UnicodeDecodeError, RuntimeError):
+    except RuntimeError:
+        body_repr = "<unavailable>"
+    except UnicodeDecodeError:
         body_repr = "<unavailable>"
 
     validation_errors: Sequence[Any]

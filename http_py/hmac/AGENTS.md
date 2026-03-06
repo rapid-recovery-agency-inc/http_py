@@ -4,6 +4,11 @@
 
 This module provides HMAC-SHA256 signature verification for HTTP API authentication. It enables request signing and validation to ensure requests originate from trusted clients with shared secrets.
 
+## Recent Changes
+
+- Updated `services.py` to improve signature validation logic and error handling.
+- Refactored `utils.py` for more robust HMAC signing and message construction.
+
 ## Architecture
 
 ```

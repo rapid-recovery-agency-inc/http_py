@@ -4,6 +4,10 @@
 
 This module provides HTTP request/response logging functionality as Starlette middleware. It captures complete request and response data and persists it to PostgreSQL for auditing, debugging, and analytics purposes.
 
+## Recent Changes
+
+- Updated `__init__.py` and `services.py` for improved middleware registration and error handling.
+
 ## Architecture
 
 ```

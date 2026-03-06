@@ -1,17 +1,11 @@
-"""Portable factory for building unified FastAPI exception handlers.
-
-Produces a single async handler from a declarative name→rule mapping.
-Zero project-specific imports — only depends on starlette and stdlib.
-"""
-
 from typing import Any
-from collections.abc import Callable, Awaitable
+from collections.abc import Callable, Coroutine
 
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import Response, JSONResponse
 
+from http_py.exceptions.types import HandlerRule
 from http_py.logging.services import create_logger
-from http_py.exception_handling.types import HandlerRule
 
 
 logger = create_logger(__name__)
@@ -30,15 +24,24 @@ def get_request_metadata(request: Request) -> dict[str, str]:
     }
 
 
-def create_exception_handler(
-    handler_map: dict[str, HandlerRule],
-) -> Callable[..., Awaitable[JSONResponse]]:
-    async def handler(request: Request, exc: Exception) -> JSONResponse:
-        """Unified exception handler produced by create_exception_handler."""
-        meta = get_request_metadata(request)
-        for rule in handler_map.values():
-            if not isinstance(exc, rule.exc_type):
-                continue
+ExceptionHandler = Callable[[Request, Any], Coroutine[Any, Any, Response]]
+ExceptionHandlers = dict[
+    int | type[Exception],
+    ExceptionHandler,
+]
+
+
+def create_exception_handlers(
+    rules: list[HandlerRule],
+) -> ExceptionHandlers:
+    handlers: ExceptionHandlers = {}
+    for rule in rules:
+
+        async def handler(
+            request: Request, exc: Exception, rule: HandlerRule = rule
+        ) -> JSONResponse:
+            """Unified exception handler produced by create_exception_handler."""
+            meta = get_request_metadata(request)
 
             # Build response content
             log_extras: dict[str, Any] = {}
@@ -58,12 +61,14 @@ def create_exception_handler(
                     exc_info=(type(exc), exc, exc.__traceback__),
                 )
 
-            return JSONResponse(status_code=rule.status_code, content=content)
+                return JSONResponse(status_code=rule.status_code, content=content)
 
-        # Safety net — should never reach here if catch-all Exception rule is last
-        return JSONResponse(
-            status_code=500,
-            content={"detail": "Unhandled exception", **meta},
-        )
+            # Safety net — should never reach here if catch-all Exception rule is last
+            return JSONResponse(
+                status_code=500,
+                content={"detail": "Unhandled exception", **meta},
+            )
 
-    return handler
+        handlers[rule.exc_type] = handler
+
+    return handlers

@@ -32,7 +32,6 @@ async def require_hmac_signature(request: Request, env: HMACEnvironment) -> None
     is_valid_signature: bool = False
     for secret in env.SECRETS:
         expected_signature: str = sign(secret, str(request.url), params, body)
-
         # Early ending on first valid signature
         if hmac.compare_digest(expected_signature, signature):
             is_valid_signature = True
@@ -46,6 +45,16 @@ async def require_hmac_signature(request: Request, env: HMACEnvironment) -> None
 def build_hmac_factory_dependency(
     env: HMACEnvironment,
 ) -> HMACFactoryDependency:
+    if not env.HMAC_HEADER_NAME or str(env.HMAC_HEADER_NAME).strip() == "":
+        raise ValueError(
+            "require_hmac_signature:HMAC_HEADER_NAME must be set in the environment"
+        )
+
+    if not env.SECRETS or not isinstance(env.SECRETS, list) or len(env.SECRETS) == 0:
+        raise ValueError(
+            "require_hmac_signature:SECRETS must be a non-empty list in the environment"
+        )
+
     async def dependency(request: Request) -> None:
         await require_hmac_signature(request, env)
 

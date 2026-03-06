@@ -4,6 +4,12 @@
 
 This module provides a declarative factory for building unified FastAPI exception handlers. It produces a single async handler from a name→rule mapping, enabling consistent error responses, structured logging, and customizable content builders across all exception types.
 
+## Recent Changes
+
+- Added new `exceptions` module to replace `exception_handling`.
+- Refactored `services.py` to fix handler closure bug and improve handler mapping.
+- Updated `types.py` and `utils.py` for better type safety and content builder utilities.
+
 ## Architecture
 
 ```

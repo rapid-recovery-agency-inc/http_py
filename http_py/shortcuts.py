@@ -30,7 +30,7 @@ def fetch_aws_secret(secret_name: str, aws_region: str) -> dict[str, str]:
         raise e
 
 
-def load_aws_env(environment: AWSEnvironment) -> dict[str, str]:
+def load_aws_env(environment: AWSEnvironment) -> dict[str, str | list[str]]:
     environment_secret_name = environment.ENVIRONMENT_SECRET_NAME
     aws_region = environment.AWS_REGION
 
@@ -51,7 +51,7 @@ def load_aws_env(environment: AWSEnvironment) -> dict[str, str]:
             )
         }
 
-    merged_dict_env: dict[str, str] = {"SECRETS": "".join(list(secrets.values()))}
+    merged_dict_env: dict[str, str | list[str]] = {"SECRETS": list(secrets.values())}
     for k, v in secret_values.items():
         merged_dict_env[k] = v
     return merged_dict_env

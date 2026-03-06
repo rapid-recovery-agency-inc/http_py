@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.requests import Request
 
-from http_py.exception_handling import (
+from http_py.exceptions import (
     HandlerRule,
     build_unexpected_content,
     build_validation_content,
@@ -129,7 +129,7 @@ def create_app() -> FastAPI:
     app = FastAPI()
 
     # Create single handler for all exceptions
-    exception_handler = create_exception_handler(handler_map=HANDLER_MAP)
+    exception_handler = create_exception_handler(handlers=HANDLER_MAP)
 
     # Register for validation errors and all exceptions
     app.add_exception_handler(RequestValidationError, exception_handler)
