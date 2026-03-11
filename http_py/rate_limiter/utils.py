@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from psycopg_pool import PoolTimeout
 
 from http_py.context import ContextProtocol
-from http_py.requests.services import ExtractedRequestData
 from http_py.logging.services import create_logger
+from http_py.requests.services import ExtractedRequestData
 from http_py.rate_limiter.types import (
     RateLimiterRule,
     RateLimitException,

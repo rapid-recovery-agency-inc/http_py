@@ -1,16 +1,15 @@
 from http import HTTPStatus
 
+from starlette.types import ASGIApp
 from starlette.requests import Request
-from starlette.responses import Response as StarletteResponse
+from starlette.responses import Response, Response as StarletteResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from http_py.context import ContextFactory
-from http_py.requests.services import  extract_request_data
 from http_py.logging.services import create_logger
+from http_py.requests.services import extract_request_data
 from http_py.rate_limiter.types import RateLimitException
 from http_py.rate_limiter.utils import assert_capacity
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.types import ASGIApp
-from starlette.responses import Response
 
 
 logger = create_logger(__name__)
@@ -49,7 +48,6 @@ async def rate_limiter_middleware(
     return response
 
 
-
 class RateLimiterMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
@@ -67,4 +65,3 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         return await rate_limiter_middleware(
             self.path_whitelist, request, call_next, self.create_service_context
         )
-    

@@ -120,6 +120,8 @@ def validate_request_data(req_data: ExtractedRequestData) -> None:
     if not req_data.product_module:
         raise ValueError("validate_request_data:Missing required field: product_module")
     if not req_data.product_feature:
-        raise ValueError("validate_request_data:Missing required field: product_feature")
+        raise ValueError(
+            "validate_request_data:Missing required field: product_feature"
+        )
     if not req_data.product_tenant:
         raise ValueError("validate_request_data:Missing required field: product_tenant")

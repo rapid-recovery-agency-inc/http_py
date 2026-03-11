@@ -1,7 +1,6 @@
 import hmac
 
 from http_py.types import HMACEnvironment
-from http_py.requests.services import Request
 from http_py.hmac.types import HMACFactoryDependency
 from http_py.hmac.utils import sign
 from http_py.hmac.constants import (
@@ -10,6 +9,7 @@ from http_py.hmac.constants import (
     HMAC_UNSUPPORTED_METHOD,
 )
 from http_py.hmac.exceptions import HMACException
+from http_py.requests.services import Request
 
 
 DEFAULT_HEADER_NAME: str = "RRA-HMAC-Signature"

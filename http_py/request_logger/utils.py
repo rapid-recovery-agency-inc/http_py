@@ -21,7 +21,7 @@ async def save_request(args: RequestArgs) -> None:
             async with conn.cursor() as cur:
                 await cur.execute(
                     """
-                    INSERT INTO 
+                    INSERT INTO
                         request_logger_request
                         (
                             path, product_name, product_module, product_feature,

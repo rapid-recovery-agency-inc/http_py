@@ -1,6 +1,6 @@
 import random
 from typing import Protocol
-from collections.abc import Callable, Awaitable
+from collections.abc import Callable
 
 from psycopg_pool import AsyncConnectionPool
 from starlette.requests import Request

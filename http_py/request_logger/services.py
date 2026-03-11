@@ -1,20 +1,19 @@
-from typing import cast
 import time
+from typing import cast
 
 from starlette import status
 from starlette.types import ASGIApp
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response, StreamingResponse
+from starlette.responses import Response, JSONResponse, StreamingResponse
 from starlette.concurrency import iterate_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from http_py.context import ContextFactory
+from http_py.logging.services import create_logger
 from http_py.requests.services import (
-    StreamingResponse,
     extract_request_data,
     validate_request_data,
 )
-from http_py.logging.services import create_logger
 from http_py.request_logger.types import RequestArgs
 from http_py.request_logger.utils import save_request
 
@@ -39,8 +38,8 @@ async def database_request_logger_middleware(
         validate_request_data(req_data)
     except ValueError as err:
         logger.error(f"database_request_logger_middleware: {err}")
-        return JSONResponse (status_code=400, content={"error": str(err)}) 
-        
+        return JSONResponse(status_code=400, content={"error": str(err)})
+
     response_headers: str | None = None
     response_body: str | None = None
 
@@ -70,7 +69,7 @@ async def database_request_logger_middleware(
     streaming_response.body_iterator = iterate_in_threadpool(iter(body))
     if len(body) > 0:
         for chunk in body:
-            response_body = chunk.decode()
+            response_body = chunk.decode()  # type: ignore
             break
     else:
         response_body = ""
@@ -114,7 +113,8 @@ class ConsoleRequestLoggerMiddleware(BaseHTTPMiddleware):
             {response.status_code} {response_time:.3f}s"
         logger.info(message)
         return response
-    
+
+
 class DatabaseRequestLoggerMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
@@ -132,4 +132,3 @@ class DatabaseRequestLoggerMiddleware(BaseHTTPMiddleware):
         return await database_request_logger_middleware(
             self.path_whitelist, request, call_next, self.create_service_context
         )
-    
