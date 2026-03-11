@@ -1,14 +1,16 @@
 from http import HTTPStatus
-from collections.abc import Callable, Awaitable
 
 from starlette.requests import Request
 from starlette.responses import Response as StarletteResponse
 
 from http_py.context import ContextFactory
-from http_py.request import Response, NextCallable, extract_request_data
+from http_py.requests.services import  extract_request_data
 from http_py.logging.services import create_logger
 from http_py.rate_limiter.types import RateLimitException
 from http_py.rate_limiter.utils import assert_capacity
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp
+from starlette.responses import Response
 
 
 logger = create_logger(__name__)
@@ -17,7 +19,7 @@ logger = create_logger(__name__)
 async def rate_limiter_middleware(
     path_whitelist: list[str],
     request: Request,
-    call_next: NextCallable,
+    call_next: RequestResponseEndpoint,
     create_service_context: ContextFactory,
 ) -> Response:
     path = request.url.path
@@ -25,7 +27,7 @@ async def rate_limiter_middleware(
         response: Response = await call_next(request)
         return response
 
-    ctx = await create_service_context(request)
+    ctx = create_service_context(request)
     req_data = await extract_request_data(request)
     try:
         await assert_capacity(req_data, ctx)
@@ -47,12 +49,22 @@ async def rate_limiter_middleware(
     return response
 
 
-def create_rate_limiter_middleware(
-    path_whitelist: list[str], create_service_context: ContextFactory
-) -> Callable[[Request, NextCallable], Awaitable[Response]]:
-    async def func(request: Request, call_next: NextCallable) -> Response:
-        return await rate_limiter_middleware(
-            path_whitelist, request, call_next, create_service_context
-        )
 
-    return func
+class RateLimiterMiddleware(BaseHTTPMiddleware):
+    def __init__(
+        self,
+        app: ASGIApp,
+        path_whitelist: list[str],
+        create_service_context: ContextFactory,
+    ):
+        super().__init__(app)
+        self.path_whitelist = path_whitelist
+        self.create_service_context = create_service_context
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        return await rate_limiter_middleware(
+            self.path_whitelist, request, call_next, self.create_service_context
+        )
+    
