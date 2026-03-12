@@ -141,3 +141,8 @@ dump.rdb
 .env.aws.dev
 .env.aws.main
 .ruff_cache
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
