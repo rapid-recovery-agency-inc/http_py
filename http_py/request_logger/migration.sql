@@ -70,8 +70,8 @@ CREATE TABLE
         from_cache BOOLEAN NOT NULL,
         request_headers TEXT NOT NULL,
         request_body TEXT NOT NULL,
-        response_headers TEXT NOT NULL,
-        response_body TEXT NOT NULL,
+        response_headers TEXT NULL,
+        response_body TEXT NULL,
         status_code INTEGER NOT NULL
     );
 

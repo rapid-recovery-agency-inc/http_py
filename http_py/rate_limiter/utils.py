@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from psycopg_pool import PoolTimeout
 
 from http_py.context import ContextProtocol
-from http_py.request import ExtractedRequestData
 from http_py.logging.services import create_logger
+from http_py.requests.services import ExtractedRequestData
 from http_py.rate_limiter.types import (
     RateLimiterRule,
     RateLimitException,
@@ -149,7 +149,7 @@ async def fetch_rate_limiter_monthly_count(
                 await cur.execute(
                     """
                     SELECT COUNT(*)
-                    FROM rate_limiter_request
+                    FROM request_logger_request
                     WHERE
                         month = %(month_key)s
                       AND path = %(path)s
@@ -196,7 +196,7 @@ async def fetch_rate_limiter_daily_count(
                 await cur.execute(
                     """
                     SELECT COUNT(*)
-                    FROM rate_limiter_request
+                    FROM request_logger_request
                     WHERE
                         day = %(day_key)s
                       AND path = %(path)s
@@ -243,7 +243,7 @@ async def fetch_rate_limiter_hourly_count(
                 await cur.execute(
                     """
                     SELECT COUNT(*)
-                    FROM rate_limiter_request
+                    FROM request_logger_request
                     WHERE
                         hour = %(hour_key)s
                       AND path = %(path)s

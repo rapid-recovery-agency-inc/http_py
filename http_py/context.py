@@ -1,6 +1,6 @@
 import random
 from typing import Protocol
-from collections.abc import Callable, Awaitable
+from collections.abc import Callable
 
 from psycopg_pool import AsyncConnectionPool
 from starlette.requests import Request
@@ -26,7 +26,7 @@ class ContextProtocol(Protocol):
         return random.choice(self.reader_pools)  # noqa: S311
 
 
-ContextFactory = Callable[[Request], Awaitable[ContextProtocol]]
+ContextFactory = Callable[[Request], ContextProtocol]
 ContextFactoryDependency = Callable[[Request], None]
 
 
@@ -59,13 +59,12 @@ def build_context_factory_dependency(
     return dependency
 
 
-async def build_context_factory(
+def build_context_factory(
     env: PostgressEnvironment,
 ) -> ContextFactory:
-    writer_pool = get_async_writer_connection_pool(env)
-    reader_pools = get_async_readers_connection_pools(env)
-
-    async def factory(_: Request) -> ContextProtocol:
+    def factory(_: Request) -> ContextProtocol:
+        writer_pool = get_async_writer_connection_pool(env)
+        reader_pools = get_async_readers_connection_pools(env)
         # Context implements Context protocol
         return Context(
             writer_pool=writer_pool,

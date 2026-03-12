@@ -16,3 +16,4 @@ class RequestArgs:
     request_body: str | None
     response_headers: str | None
     response_body: str | None
+    status_code: int | None = None

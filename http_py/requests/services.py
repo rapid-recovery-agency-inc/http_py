@@ -104,3 +104,24 @@ async def extract_request_data(request: Request) -> ExtractedRequestData:
         product_feature=product_feature,
         product_tenant=product_tenant,
     )
+
+
+def validate_request_data(req_data: ExtractedRequestData) -> None:
+    """Validate that required fields are present in the extracted request data.
+
+    Args:
+        req_data: The extracted request data to validate.
+
+    Raises:
+        ValueError: If any required field is missing.
+    """
+    if not req_data.product_name:
+        raise ValueError("validate_request_data:Missing required field: product_name")
+    if not req_data.product_module:
+        raise ValueError("validate_request_data:Missing required field: product_module")
+    if not req_data.product_feature:
+        raise ValueError(
+            "validate_request_data:Missing required field: product_feature"
+        )
+    if not req_data.product_tenant:
+        raise ValueError("validate_request_data:Missing required field: product_tenant")

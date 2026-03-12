@@ -57,7 +57,7 @@ Stores rate limit configurations per product and path.
 | `daily_limit` | INTEGER | Max requests per day |
 | `monthly_limit` | INTEGER | Max requests per month |
 
-### Table: `rate_limiter_request` (referenced but not in migration)
+### Table: `request_logger_request` (referenced but not in migration)
 
 Stores individual requests for counting. Expected columns:
 - `path`, `product_name`
@@ -131,12 +131,12 @@ Counts use integer keys for efficient indexing:
 ## Known Issues
 
 1. **Typo in filename**: `servivces.py` should be `services.py`
-2. **Missing migration**: `rate_limiter_request` table schema not included
+2. **Missing migration**: `request_logger_request` table schema not included
 3. **Bug in `fetch_rate_limiter_monthly_count`**: References `args.ctx.reader_pool` instead of `ctx.reader_pool`
 
 ## Potential Improvements
 
-1. **Add `rate_limiter_request` migration** - Include the request tracking table schema
+1. **Add `request_logger_request` migration** - Include the request tracking table schema
 2. **Sliding window rate limiting** - Current implementation uses fixed time windows
 3. **Redis-based counting** - For distributed deployments
 4. **Configurable cache TTL** - Allow per-deployment tuning
