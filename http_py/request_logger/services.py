@@ -14,7 +14,7 @@ from http_py.requests.services import (
     extract_request_data,
     validate_request_data,
 )
-from http_py.request_logger.types import RequestArgs
+from http_py.request_logger.types import RequestArgs, RequestLoggerOverride
 from http_py.request_logger.utils import save_request
 
 
@@ -26,6 +26,7 @@ async def database_request_logger_middleware(
     request: Request,
     call_next: RequestResponseEndpoint,
     create_service_context: ContextFactory,
+    override: RequestLoggerOverride | None = None,
 ) -> Response:
     path = request.url.path
     if path in path_whitelist:
@@ -33,9 +34,17 @@ async def database_request_logger_middleware(
         return response
 
     ctx = create_service_context(request)
+
     req_data = await extract_request_data(request)
+    # Merge overrides into req_data dict if provided
+    req_data_dict = req_data.__dict__.copy()
+    if override:
+        for field in RequestLoggerOverride._fields:
+            value = getattr(override, field, None)
+            if value is not None:
+                req_data_dict[field] = value
     try:
-        validate_request_data(req_data)
+        validate_request_data(type(req_data)(**req_data_dict))
     except ValueError as err:
         logger.error(f"database_request_logger_middleware: {err}")
         return JSONResponse(status_code=400, content={"error": str(err)})
@@ -43,22 +52,25 @@ async def database_request_logger_middleware(
     response_headers: str | None = None
     response_body: str | None = None
 
+    start_time = time.perf_counter()
     try:
         response = await call_next(request)
     except Exception as err:
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
         args = RequestArgs(
             ctx=ctx,
-            path=req_data.path,
+            path=req_data_dict["path"],
             from_cache=False,
-            product_name=req_data.product_name,
-            product_module=req_data.product_module,
-            product_feature=req_data.product_feature,
-            product_tenant=req_data.product_tenant,
-            request_headers=req_data.request_headers,
-            request_body=req_data.request_body,
+            product_name=req_data_dict.get("product_name"),
+            product_module=req_data_dict.get("product_module"),
+            product_feature=req_data_dict.get("product_feature"),
+            product_tenant=req_data_dict.get("product_tenant"),
+            request_headers=req_data_dict.get("request_headers"),
+            request_body=req_data_dict.get("request_body"),
             response_headers=response_headers,
             response_body=response_body,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            duration_ms=duration_ms,
         )
         await save_request(args)
         raise err
@@ -75,19 +87,21 @@ async def database_request_logger_middleware(
         response_body = ""
         logger.error("request_logger_middleware:UnexpectedEmptyBody")
 
+    duration_ms = int((time.perf_counter() - start_time) * 1000)
     args = RequestArgs(
         ctx=ctx,
-        path=req_data.path,
+        path=req_data_dict["path"],
         from_cache=False,
-        product_name=req_data.product_name,
-        product_module=req_data.product_module,
-        product_feature=req_data.product_feature,
-        product_tenant=req_data.product_tenant,
-        request_headers=req_data.request_headers,
-        request_body=req_data.request_body,
+        product_name=req_data_dict.get("product_name"),
+        product_module=req_data_dict.get("product_module"),
+        product_feature=req_data_dict.get("product_feature"),
+        product_tenant=req_data_dict.get("product_tenant"),
+        request_headers=req_data_dict.get("request_headers"),
+        request_body=req_data_dict.get("request_body"),
         response_headers=response_headers,
         response_body=response_body,
         status_code=response.status_code,
+        duration_ms=duration_ms,
     )
     await save_request(args)
     return response
@@ -121,14 +135,20 @@ class DatabaseRequestLoggerMiddleware(BaseHTTPMiddleware):
         app: ASGIApp,
         path_whitelist: list[str],
         create_service_context: ContextFactory,
+        override: RequestLoggerOverride | None = None,
     ):
         super().__init__(app)
         self.path_whitelist = path_whitelist
         self.create_service_context = create_service_context
+        self.override = override
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         return await database_request_logger_middleware(
-            self.path_whitelist, request, call_next, self.create_service_context
+            self.path_whitelist,
+            request,
+            call_next,
+            self.create_service_context,
+            self.override,
         )
