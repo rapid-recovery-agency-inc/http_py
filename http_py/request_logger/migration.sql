@@ -23,48 +23,15 @@ CREATE TABLE
             )
         ) NOT NULL,
         day INTEGER DEFAULT (
-            (
-                EXTRACT(
-                    YEAR
-                    FROM
-                        CURRENT_DATE
-                ) * 100
-            ) + (
-                EXTRACT(
-                    MONTH
-                    FROM
-                        CURRENT_DATE
-                ) * 100
-            ) + EXTRACT(
-                DAY
-                FROM
-                    CURRENT_DATE
-            )
+            (EXTRACT(YEAR FROM CURRENT_DATE) * 10000)
+            + (EXTRACT(MONTH FROM CURRENT_DATE) * 100)
+            + EXTRACT(DAY FROM CURRENT_DATE)
         ) NOT NULL,
         hour INTEGER DEFAULT (
-            (
-                EXTRACT(
-                    YEAR
-                    FROM
-                        CURRENT_DATE
-                ) * 100
-            ) + (
-                EXTRACT(
-                    MONTH
-                    FROM
-                        CURRENT_DATE
-                ) * 100
-            ) + (
-                EXTRACT(
-                    DAY
-                    FROM
-                        CURRENT_DATE
-                ) * 100
-            ) + EXTRACT(
-                HOUR
-                FROM
-                    CURRENT_TIMESTAMP
-            )
+            (EXTRACT(YEAR FROM CURRENT_DATE) * 1000000)
+            + (EXTRACT(MONTH FROM CURRENT_DATE) * 10000)
+            + (EXTRACT(DAY FROM CURRENT_DATE) * 100)
+            + EXTRACT(HOUR FROM CURRENT_TIMESTAMP)
         ) NOT NULL,
         -- Request/Response Data
         from_cache BOOLEAN NOT NULL,
