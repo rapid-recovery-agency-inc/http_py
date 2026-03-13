@@ -60,5 +60,5 @@ jobs:
           git add pyproject.toml
           git diff --cached --quiet && echo "No changes to commit" && exit 0
           git commit -m "chore: bump patch version [skip ci]"
-          git push
+          git push "HEAD:${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
 
