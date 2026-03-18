@@ -5,19 +5,12 @@ for building unified FastAPI exception handlers.
 """
 
 from typing import Any, Final
-
+sdfasdsadfas
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.requests import Request
 
-from http_py.exceptions import (
-    HandlerRule,
-    build_unexpected_content,
-    build_validation_content,
-    create_exception_handler,
-    build_client_error_content,
-)
-
+from http_py.exceptions import HandlerRule, create_exception_handler, build_validation_content, build_client_error_content, build_unexpected_content
 
 # ──────────────────────────────────────────────────────────────────────
 # 1. Define Your Application Exceptions
@@ -67,92 +60,72 @@ class ClientError(Exception):
 # 2. Define Handler Rules (exception -> response mapping)
 # ──────────────────────────────────────────────────────────────────────
 
-HANDLER_MAP: Final[dict[str, HandlerRule]] = {
+HANDLER_MAP: Final[list[HandlerRule]] = [
+      # 404 - Not Found
+    HandlerRule(
+        TaskDoesNotExistException,
+        status_code=404,
+    ),
     # 422 - Validation errors (custom content builder)
-    "validation": HandlerRule(
+    HandlerRule(
         RequestValidationError,
         status_code=422,
         content_builder=build_validation_content,
     ),
-    # 404 - Not Found
-    "task_not_found": HandlerRule(
-        TaskDoesNotExistException,
-        status_code=404,
-    ),
     # 400 - Bad Request (don't include exception detail)
-    "data_source_error": HandlerRule(
+    HandlerRule(
         DataSourceFetchException,
         status_code=400,
         include_detail=False,
     ),
     # 200 - Expected business conditions (prevent SQS retry)
-    "no_locations": HandlerRule(
+    HandlerRule(
         NoLocationsFoundException,
         status_code=200,
         log_level="debug",
         include_detail=False,
     ),
     # 423 - Locked
-    "lock_failure": HandlerRule(
+    HandlerRule(
         FailedLockAcquisitionException,
         status_code=423,
         log_level="warning",
     ),
     # 500 - AWS errors (custom content builder)
-    "client_error": HandlerRule(
+    HandlerRule(
         ClientError,
         status_code=500,
         content_builder=build_client_error_content,
     ),
     # 500 - Application errors
-    "scoring_engine_base": HandlerRule(
+    HandlerRule(
         ScoringEngineBaseException,
         status_code=500,
     ),
     # 500 - True catch-all (must be LAST)
-    "unexpected": HandlerRule(
+    HandlerRule(
         Exception,
         status_code=500,
         log_level="critical",
-        content_builder=build_unexpected_content,
+        content_builder=build_custom_error_content,
     ),
-}
+]
+
+
+
 
 
 # ──────────────────────────────────────────────────────────────────────
 # 3. FastAPI Integration
 # ──────────────────────────────────────────────────────────────────────
-
-
-def create_app() -> FastAPI:
-    """Create FastAPI app with unified exception handler."""
-    app = FastAPI()
-
-    # Create single handler for all exceptions
-    exception_handler = create_exception_handler(handlers=HANDLER_MAP)
-
-    # Register for validation errors and all exceptions
-    app.add_exception_handler(RequestValidationError, exception_handler)
-    app.add_exception_handler(Exception, exception_handler)
-
-    return app
+exception_handlers = create_exception_handler(handlers=HANDLER_MAP)
+app = FastAPI(
+    exception_handlers=exception_handlers,
+)
 
 
 # ──────────────────────────────────────────────────────────────────────
-# 4. HandlerRule Parameters
-# ──────────────────────────────────────────────────────────────────────
-
-# HandlerRule(
-#     exc_type: type[Exception],       # Exception class to match
-#     status_code: int,                # HTTP status code
-#     log_level: str | None = "error", # "debug"|"info"|...|"critical"|None
-#     include_detail: bool = True,     # Include str(exc) in response
-#     content_builder: fn | None,      # Custom async content builder
-# )
-
-
-# ──────────────────────────────────────────────────────────────────────
-# 5. Custom Content Builder
+# 4. Custom Content Builder
 # ──────────────────────────────────────────────────────────────────────
 
 
