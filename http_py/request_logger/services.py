@@ -29,13 +29,14 @@ async def database_request_logger_middleware(
     create_service_context: ContextFactory,
     override: RequestLoggerOverride | None = None,
 ) -> Response:
+    incoming = (request.headers.get("X-Request-ID") or "").strip()
+    request_uuid = incoming or str(uuid.uuid4())
+    request.state.request_uuid = request_uuid
     path = request.url.path
     if path in path_whitelist:
         response: Response = await call_next(request)
-        response.headers["X-Request-ID"] = str(uuid.uuid4())
+        response.headers["X-Request-ID"] = request_uuid
         return response
-
-    request_uuid = str(uuid.uuid4())
 
     ctx = create_service_context(request)
 
