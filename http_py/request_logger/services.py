@@ -32,13 +32,10 @@ async def database_request_logger_middleware(
     path = request.url.path
     if path in path_whitelist:
         response: Response = await call_next(request)
+        response.headers["X-Request-ID"] = str(uuid.uuid4())
         return response
 
-    request_uuid = request.headers.get("x-request-id")
-    if request_uuid is not None:
-        request_uuid = request_uuid.strip() or None
-    if request_uuid is None:
-        request_uuid = str(uuid.uuid4())
+    request_uuid = str(uuid.uuid4())
 
     ctx = create_service_context(request)
 
@@ -54,7 +51,9 @@ async def database_request_logger_middleware(
         validate_request_data(type(req_data)(**req_data_dict))
     except ValueError as err:
         logger.error(f"database_request_logger_middleware: {err}")
-        return JSONResponse(status_code=400, content={"error": str(err)})
+        error_response = JSONResponse(status_code=400, content={"error": str(err)})
+        error_response.headers["X-Request-ID"] = request_uuid
+        return error_response
 
     response_headers: str | None = None
     response_body: str | None = None
@@ -83,6 +82,7 @@ async def database_request_logger_middleware(
         await save_request(args)
         raise err
 
+    response.headers["X-Request-ID"] = request_uuid
     response_headers = str(response.headers)
     streaming_response = cast(StreamingResponse, response)
     body = [chunk async for chunk in streaming_response.body_iterator]
