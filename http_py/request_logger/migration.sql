@@ -50,3 +50,6 @@ CREATE INDEX IF NOT EXISTS request_logger_request__month_index ON public.request
 CREATE INDEX IF NOT EXISTS request_logger_request__day_index ON public.request_logger_request (day, product_name, path);
 
 CREATE INDEX IF NOT EXISTS request_logger_request__hour_index ON public.request_logger_request (hour, product_name, path);
+
+ALTER TABLE public.request_logger_request
+ADD COLUMN IF NOT EXISTS request_uuid TEXT NULL;

@@ -1,4 +1,5 @@
 import time
+import uuid
 from typing import cast
 
 from starlette import status
@@ -32,6 +33,12 @@ async def database_request_logger_middleware(
     if path in path_whitelist:
         response: Response = await call_next(request)
         return response
+
+    request_uuid = request.headers.get("x-request-id")
+    if request_uuid is not None:
+        request_uuid = request_uuid.strip() or None
+    if request_uuid is None:
+        request_uuid = str(uuid.uuid4())
 
     ctx = create_service_context(request)
 
@@ -71,6 +78,7 @@ async def database_request_logger_middleware(
             response_body=response_body,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             duration_ms=duration_ms,
+            request_uuid=request_uuid,
         )
         await save_request(args)
         raise err
@@ -102,6 +110,7 @@ async def database_request_logger_middleware(
         response_body=response_body,
         status_code=response.status_code,
         duration_ms=duration_ms,
+        request_uuid=request_uuid,
     )
     await save_request(args)
     return response

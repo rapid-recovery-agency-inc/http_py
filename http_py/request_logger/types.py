@@ -29,3 +29,4 @@ class RequestArgs:
     response_body: str | None
     status_code: int | None = None
     duration_ms: int | None = None
+    request_uuid: str | None = None
