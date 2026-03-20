@@ -17,6 +17,7 @@ from http_py.requests.services import (
 )
 from http_py.request_logger.types import RequestArgs, RequestLoggerOverride
 from http_py.request_logger.utils import save_request
+from http_py.request_logger.constants import REQUEST_LOGGER_HEADER
 
 
 logger = create_logger(__name__)
@@ -29,13 +30,11 @@ async def database_request_logger_middleware(
     create_service_context: ContextFactory,
     override: RequestLoggerOverride | None = None,
 ) -> Response:
-    incoming = (request.headers.get("X-Request-ID") or "").strip()
-    request_uuid = incoming or str(uuid.uuid4())
-    request.state.request_uuid = request_uuid
+    request_uuid = str(uuid.uuid4)
     path = request.url.path
     if path in path_whitelist:
         response: Response = await call_next(request)
-        response.headers["X-Request-ID"] = request_uuid
+        response.headers[REQUEST_LOGGER_HEADER] = request_uuid
         return response
 
     ctx = create_service_context(request)
@@ -53,7 +52,7 @@ async def database_request_logger_middleware(
     except ValueError as err:
         logger.error(f"database_request_logger_middleware: {err}")
         error_response = JSONResponse(status_code=400, content={"error": str(err)})
-        error_response.headers["X-Request-ID"] = request_uuid
+        error_response.headers[REQUEST_LOGGER_HEADER] = request_uuid
         return error_response
 
     response_headers: str | None = None
@@ -83,7 +82,7 @@ async def database_request_logger_middleware(
         await save_request(args)
         raise err
 
-    response.headers["X-Request-ID"] = request_uuid
+    response.headers[REQUEST_LOGGER_HEADER] = request_uuid
     response_headers = str(response.headers)
     streaming_response = cast(StreamingResponse, response)
     body = [chunk async for chunk in streaming_response.body_iterator]
