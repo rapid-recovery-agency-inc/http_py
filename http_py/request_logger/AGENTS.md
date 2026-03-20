@@ -6,7 +6,11 @@ This module provides HTTP request/response logging functionality as Starlette mi
 
 ## Recent Changes
 
-- Updated `__init__.py` and `services.py` for improved middleware registration and error handling.
+- `__init__.py` now exports `ConsoleRequestLoggerMiddleware` and `DatabaseRequestLoggerMiddleware` directly.
+- Request logging now persists `status_code`, `duration_ms`, and `request_uuid` with each record.
+- The middleware always generates a `request_uuid` and exposes it to the consumer through the `RRA-Request-Logger-Request-ID` response header.
+- When the middleware generates the request ID internally, the value is still returned in the response header for both successful responses and validation-error responses.
+- Validation failures return `400` JSON responses without skipping request ID propagation.
 
 ## Architecture
 
@@ -68,6 +72,8 @@ Stores complete request/response data with time-based keys for efficient queryin
 | `response_headers` | TEXT | Serialized response headers |
 | `response_body` | TEXT | Response body content |
 | `status_code` | INTEGER | HTTP response status code |
+| `duration_ms` | INTEGER | End-to-end middleware duration in milliseconds |
+| `request_uuid` | UUID | Correlation ID returned to the consumer and stored with the log |
 
 ### Indexes
 
@@ -82,6 +88,7 @@ Stores complete request/response data with time-based keys for efficient queryin
 class RequestArgs:
     ctx: Context
     path: str
+    from_cache: bool
     product_name: str | None
     product_module: str | None
     product_feature: str | None
@@ -90,32 +97,42 @@ class RequestArgs:
     request_body: str | None
     response_headers: str | None
     response_body: str | None
+    status_code: int | None = None
+    duration_ms: int | None = None
+    request_uuid: str | None = None
 ```
 
 ## Usage
 
 ```python
-from http_py.request_logger import create_request_logger_middleware
-
-# Create middleware with path whitelist
-middleware = create_request_logger_middleware(
-    path_whitelist=["/health", "/metrics"],
-    create_service_context=your_context_factory
-)
+from http_py.request_logger import DatabaseRequestLoggerMiddleware
+from http_py.context import create_service_context
 
 # Add to Starlette app
-app.add_middleware(BaseHTTPMiddleware, dispatch=middleware)
+app.add_middleware(
+    DatabaseRequestLoggerMiddleware,
+    path_whitelist=["/health", "/metrics"],
+    create_service_context=create_service_context,
+)
 ```
 
 ## Request Flow
 
-1. **Whitelist Check**: Requests to whitelisted paths bypass logging
-2. **Context Creation**: Creates service context from request
-3. **Data Extraction**: Extracts path, headers, body, and product metadata
-4. **Handler Execution**: Calls downstream request handler
-5. **Response Capture**: Consumes StreamingResponse body and recreates iterator
-6. **Persistence**: Saves complete request/response to PostgreSQL
-7. **Response Return**: Returns response to client
+1. **Request ID Creation**: Generates a `request_uuid` at the start of the middleware.
+2. **Whitelist Check**: Requests to whitelisted paths bypass persistence, but still receive the request ID response header.
+3. **Context Creation**: Creates service context from request.
+4. **Data Extraction**: Extracts path, headers, body, and product metadata.
+5. **Validation**: Invalid request metadata returns a `400` JSON response and still includes the request ID response header.
+6. **Handler Execution**: Calls downstream request handler.
+7. **Response Capture**: Consumes `StreamingResponse` body and recreates the iterator.
+8. **Persistence**: Saves complete request/response data, status code, duration, and request UUID to PostgreSQL.
+9. **Response Return**: Returns the response with `RRA-Request-Logger-Request-ID` exposed to the consumer.
+
+## Response Header Contract
+
+- `request_uuid` is always returned to the consumer in the response.
+- When the service generates it, the value is exposed via the `RRA-Request-Logger-Request-ID` response header.
+- This applies to both successful responses and validation-error responses.
 
 ## Product Metadata Extraction
 
@@ -134,35 +151,33 @@ Matches the rate_limiter module for cross-querying:
 
 ## Error Handling
 
-- Logs request even when downstream handler raises exception
-- Re-raises original exception after logging
-- Logs `PoolTimeout` exceptions from connection pool
-- Logs warning for unexpected empty response bodies
+- Returns `400` JSON responses when request metadata validation fails.
+- Includes `RRA-Request-Logger-Request-ID` in validation-error responses.
+- Logs request data even when the downstream handler raises an exception.
+- Re-raises the original exception after persistence.
+- Logs `PoolTimeout` exceptions from the connection pool.
+- Logs an error for unexpected empty response bodies.
 
 ## Dependencies
 
 - `starlette` - HTTP framework (StreamingResponse, iterate_in_threadpool)
 - `psycopg_pool` - PostgreSQL async connection pooling
 - `http_py.context` - Request context management
-- `http_py.request` - Request data extraction utilities
+- `http_py.requests` - Request data extraction and validation utilities
 - `http_py.logging` - Logging utilities
 
 ## Known Issues
 
-1. **Incorrect log message**: Error log says "rate_limiter_middleware:UnexpectedEmptyBody" but should say "request_logger_middleware"
-2. **Missing status_code**: `save_request()` INSERT doesn't include `status_code` column but schema requires it as NOT NULL
-3. **Full body capture**: May cause memory issues with large request/response bodies
-4. **Streaming limitation**: Consumes entire response body into memory before re-streaming
+1. **Full body capture**: May cause memory issues with large request/response bodies.
+2. **Streaming limitation**: Consumes the entire response body into memory before re-streaming it.
 
 ## Potential Improvements
 
-1. **Fix status_code insertion** - Add response.status_code to the INSERT statement
-2. **Truncate large bodies** - Limit stored body size to prevent database bloat
-3. **Async background saving** - Decouple persistence from request path for lower latency
-4. **Configurable field capture** - Allow disabling body/header capture per endpoint
-5. **Structured logging** - Store parsed JSON instead of raw text
-6. **Sampling options** - Log only a percentage of requests for high-traffic endpoints
-7. **Decouple from Starlette** - Abstract framework-specific code (noted in TODO)
-8. **Add request ID tracking** - Correlate logs with trace IDs
-9. **Compression** - Compress large bodies before storage
-10. **Retention policy** - Add automated cleanup of old records
+1. **Truncate large bodies** - Limit stored body size to prevent database bloat.
+2. **Async background saving** - Decouple persistence from the request path for lower latency.
+3. **Configurable field capture** - Allow disabling body/header capture per endpoint.
+4. **Structured logging** - Store parsed JSON instead of raw text.
+5. **Sampling options** - Log only a percentage of requests for high-traffic endpoints.
+6. **Decouple from Starlette** - Abstract framework-specific code.
+7. **Compression** - Compress large bodies before storage.
+8. **Retention policy** - Add automated cleanup of old records.
