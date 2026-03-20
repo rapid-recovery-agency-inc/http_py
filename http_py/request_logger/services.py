@@ -30,7 +30,7 @@ async def database_request_logger_middleware(
     create_service_context: ContextFactory,
     override: RequestLoggerOverride | None = None,
 ) -> Response:
-    request_uuid = str(uuid.uuid4)
+    request_uuid = str(uuid.uuid4())
     path = request.url.path
     if path in path_whitelist:
         response: Response = await call_next(request)
