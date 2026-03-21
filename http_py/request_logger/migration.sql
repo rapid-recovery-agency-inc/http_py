@@ -40,7 +40,8 @@ CREATE TABLE
         response_headers TEXT NULL,
         response_body TEXT NULL,
         status_code INTEGER NOT NULL,
-        duration_ms INTEGER
+        duration_ms INTEGER,
+        service_name TEXT
     );
 
 ALTER TABLE public.request_logger_request OWNER TO postgres;
