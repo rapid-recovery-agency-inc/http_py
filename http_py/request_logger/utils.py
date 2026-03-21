@@ -27,13 +27,13 @@ async def save_request(args: RequestArgs) -> None:
                             path, product_name, product_module, product_feature,
                             product_tenant, from_cache, request_headers,
                             request_body, response_headers, response_body,
-                            status_code, duration_ms, service_name
+                            status_code, duration_ms
                         )
                     VALUES
                         (%(path)s,%(product_name)s,%(product_module)s,%(product_feature)s,
                         %(product_tenant)s, %(from_cache)s, %(request_headers)s,
                         %(request_body)s,%(response_headers)s, %(response_body)s,
-                        %(status_code)s, %(duration_ms)s, %(service_name)s)
+                        %(status_code)s, %(duration_ms)s)
                     """,
                     {
                         "path": args.path,
@@ -48,7 +48,6 @@ async def save_request(args: RequestArgs) -> None:
                         "response_body": args.response_body,
                         "status_code": args.status_code,
                         "duration_ms": args.duration_ms,
-                        "service_name": args.service_name,
                     },
                 )
     except PoolTimeout as e:

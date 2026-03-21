@@ -27,6 +27,5 @@ class RequestArgs:
     request_body: str | None
     response_headers: str | None
     response_body: str | None
-    service_name: str | None = None
     status_code: int | None = None
     duration_ms: int | None = None

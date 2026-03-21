@@ -21,13 +21,12 @@ from http_py.request_logger.utils import save_request
 logger = create_logger(__name__)
 
 
-async def database_request_logger_middleware(  # noqa: PLR0913
+async def database_request_logger_middleware(
     path_whitelist: list[str],
     request: Request,
     call_next: RequestResponseEndpoint,
     create_service_context: ContextFactory,
     override: RequestLoggerOverride | None = None,
-    service_name: str | None = None,
 ) -> Response:
     path = request.url.path
     if path in path_whitelist:
@@ -70,7 +69,6 @@ async def database_request_logger_middleware(  # noqa: PLR0913
             request_body=req_data_dict.get("request_body"),
             response_headers=response_headers,
             response_body=response_body,
-            service_name=service_name,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             duration_ms=duration_ms,
         )
@@ -102,7 +100,6 @@ async def database_request_logger_middleware(  # noqa: PLR0913
         request_body=req_data_dict.get("request_body"),
         response_headers=response_headers,
         response_body=response_body,
-        service_name=service_name,
         status_code=response.status_code,
         duration_ms=duration_ms,
     )
@@ -139,13 +136,11 @@ class DatabaseRequestLoggerMiddleware(BaseHTTPMiddleware):
         path_whitelist: list[str],
         create_service_context: ContextFactory,
         override: RequestLoggerOverride | None = None,
-        service_name: str | None = None,
     ):
         super().__init__(app)
         self.path_whitelist = path_whitelist
         self.create_service_context = create_service_context
         self.override = override
-        self.service_name = service_name
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
@@ -156,5 +151,4 @@ class DatabaseRequestLoggerMiddleware(BaseHTTPMiddleware):
             call_next,
             self.create_service_context,
             self.override,
-            self.service_name,
         )
