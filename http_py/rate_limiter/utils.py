@@ -280,7 +280,7 @@ async def fetch_rate_limiter_hourly_count(
                     WHERE
                         hour = %(hour_key)s
                       AND path = %(path)s
-                        AND product_name = %(product_name)s
+                      AND product_name = %(product_name)s
                     """
                 ).format(table=sql.Identifier(table))
                 await cur.execute(
