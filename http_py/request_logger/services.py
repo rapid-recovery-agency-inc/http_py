@@ -21,12 +21,13 @@ from http_py.request_logger.utils import save_request
 logger = create_logger(__name__)
 
 
-async def database_request_logger_middleware(
+async def database_request_logger_middleware(  # noqa: PLR0913
     path_whitelist: list[str],
     request: Request,
     call_next: RequestResponseEndpoint,
     create_service_context: ContextFactory,
     override: RequestLoggerOverride | None = None,
+    table_prefix: str | None = None,
 ) -> Response:
     path = request.url.path
     if path in path_whitelist:
@@ -72,7 +73,7 @@ async def database_request_logger_middleware(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             duration_ms=duration_ms,
         )
-        await save_request(args)
+        await save_request(args, table_prefix)
         raise err
 
     response_headers = str(response.headers)
@@ -103,7 +104,7 @@ async def database_request_logger_middleware(
         status_code=response.status_code,
         duration_ms=duration_ms,
     )
-    await save_request(args)
+    await save_request(args, table_prefix)
     return response
 
 
@@ -136,11 +137,13 @@ class DatabaseRequestLoggerMiddleware(BaseHTTPMiddleware):
         path_whitelist: list[str],
         create_service_context: ContextFactory,
         override: RequestLoggerOverride | None = None,
+        table_prefix: str | None = None,
     ):
         super().__init__(app)
         self.path_whitelist = path_whitelist
         self.create_service_context = create_service_context
         self.override = override
+        self.table_prefix = table_prefix
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
@@ -151,4 +154,5 @@ class DatabaseRequestLoggerMiddleware(BaseHTTPMiddleware):
             call_next,
             self.create_service_context,
             self.override,
+            self.table_prefix,
         )

@@ -1,3 +1,6 @@
+import re
+
+from psycopg import sql
 from psycopg_pool import PoolTimeout
 
 from http_py.logging.services import create_logger
@@ -6,8 +9,32 @@ from http_py.request_logger.types import RequestArgs
 
 logger = create_logger(__name__)
 
+DEFAULT_REQUEST_TABLE = "request_logger_request"
 
-async def save_request(args: RequestArgs) -> None:
+_TABLE_PREFIX_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def resolve_table_name(default: str, table_prefix: str | None = None) -> str:
+    """Build a table name with an optional prefix.
+
+    Returns *default* unchanged when *table_prefix* is ``None``.
+    Otherwise returns ``"{table_prefix}_{default}"``.
+
+    Raises ``ValueError`` if the prefix contains characters that are
+    not valid in a SQL identifier.
+    """
+    if table_prefix is None:
+        return default
+    if not _TABLE_PREFIX_RE.match(table_prefix):
+        raise ValueError(
+            f"Invalid table_prefix {table_prefix!r}: "
+            "must contain only letters, digits, and underscores, "
+            "and must not start with a digit"
+        )
+    return f"{table_prefix}_{default}"
+
+
+async def save_request(args: RequestArgs, table_prefix: str | None = None) -> None:
     if any(
         v is None
         for v in [
@@ -16,13 +43,15 @@ async def save_request(args: RequestArgs) -> None:
     ):
         raise ValueError("save_request: 'path' is  required")
 
+    table = resolve_table_name(DEFAULT_REQUEST_TABLE, table_prefix)
+
     try:
         async with args.ctx.writer_pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(
+                query = sql.SQL(
                     """
                     INSERT INTO
-                        request_logger_request
+                        {table}
                         (
                             path, product_name, product_module, product_feature,
                             product_tenant, from_cache, request_headers,
@@ -34,7 +63,10 @@ async def save_request(args: RequestArgs) -> None:
                         %(product_tenant)s, %(from_cache)s, %(request_headers)s,
                         %(request_body)s,%(response_headers)s, %(response_body)s,
                         %(status_code)s, %(duration_ms)s)
-                    """,
+                    """
+                ).format(table=sql.Identifier(table))
+                await cur.execute(
+                    query,
                     {
                         "path": args.path,
                         "product_name": args.product_name,

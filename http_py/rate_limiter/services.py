@@ -20,6 +20,7 @@ async def rate_limiter_middleware(
     request: Request,
     call_next: RequestResponseEndpoint,
     create_service_context: ContextFactory,
+    table_prefix: str | None = None,
 ) -> Response:
     path = request.url.path
     if path in path_whitelist:
@@ -29,7 +30,7 @@ async def rate_limiter_middleware(
     ctx = create_service_context(request)
     req_data = await extract_request_data(request)
     try:
-        await assert_capacity(req_data, ctx)
+        await assert_capacity(req_data, ctx, table_prefix)
     except RateLimitException as err:
         request_body = (await request.body()).decode("utf-8")
         headers = str(request.headers)
@@ -54,14 +55,20 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         app: ASGIApp,
         path_whitelist: list[str],
         create_service_context: ContextFactory,
+        table_prefix: str | None = None,
     ):
         super().__init__(app)
         self.path_whitelist = path_whitelist
         self.create_service_context = create_service_context
+        self.table_prefix = table_prefix
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         return await rate_limiter_middleware(
-            self.path_whitelist, request, call_next, self.create_service_context
+            self.path_whitelist,
+            request,
+            call_next,
+            self.create_service_context,
+            self.table_prefix,
         )

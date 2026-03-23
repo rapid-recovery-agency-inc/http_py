@@ -2,6 +2,7 @@ import asyncio
 from typing import cast
 from datetime import UTC, datetime
 
+from psycopg import sql
 from psycopg_pool import PoolTimeout
 
 from http_py.context import ContextProtocol
@@ -12,19 +13,27 @@ from http_py.rate_limiter.types import (
     RateLimitException,
     RateLimiterRequestCount,
 )
+from http_py.request_logger.utils import resolve_table_name
 from http_py.cache.in_memory_cache import InMemoryCache
 
 
 CACHE = InMemoryCache()
 RULE_CACHING_EXPIRATION_IN_SECONDS = 300
 
+DEFAULT_RULE_TABLE = "rate_limiter_rule"
+DEFAULT_REQUEST_TABLE = "request_logger_request"
+
 logger = create_logger(__name__)
 
 
-async def assert_capacity(args: ExtractedRequestData, ctx: ContextProtocol) -> None:
+async def assert_capacity(
+    args: ExtractedRequestData,
+    ctx: ContextProtocol,
+    table_prefix: str | None = None,
+) -> None:
     async with asyncio.TaskGroup() as tg:
-        task1 = tg.create_task(fetch_rate_limiter_rule(args, ctx))
-        task2 = tg.create_task(fetch_rate_limiter_count(args, ctx))
+        task1 = tg.create_task(fetch_rate_limiter_rule(args, ctx, table_prefix))
+        task2 = tg.create_task(fetch_rate_limiter_count(args, ctx, table_prefix))
 
     rule: RateLimiterRule | None = task1.result()
     count: RateLimiterRequestCount | None = task2.result()
@@ -54,7 +63,9 @@ async def assert_capacity(args: ExtractedRequestData, ctx: ContextProtocol) -> N
 
 
 async def fetch_rate_limiter_rule(
-    args: ExtractedRequestData, ctx: ContextProtocol
+    args: ExtractedRequestData,
+    ctx: ContextProtocol,
+    table_prefix: str | None = None,
 ) -> RateLimiterRule | None:
     if args.path is None:
         raise ValueError("fetch_rate_limiter_rule: 'path' is required")
@@ -67,10 +78,12 @@ async def fetch_rate_limiter_rule(
     if cached_value is not None:
         return cast(RateLimiterRule, cached_value)
 
+    table = resolve_table_name(DEFAULT_RULE_TABLE, table_prefix)
+
     # Calculation
     async with ctx.reader.connection() as conn:
         async with conn.cursor() as cur:
-            await cur.execute(
+            query = sql.SQL(
                 """
                 SELECT
                     path,
@@ -79,13 +92,16 @@ async def fetch_rate_limiter_rule(
                     monthly_limit,
                     hourly_limit
                 FROM
-                    rate_limiter_rule
+                    {table}
                 WHERE
                     path = %(path)s
                     AND product_name = %(product_name)s
                 LIMIT
                     1
-                """,
+                """
+            ).format(table=sql.Identifier(table))
+            await cur.execute(
+                query,
                 {"path": args.path, "product_name": args.product_name},
             )
             result = await cur.fetchone()
@@ -105,7 +121,9 @@ async def fetch_rate_limiter_rule(
 
 
 async def fetch_rate_limiter_count(
-    args: ExtractedRequestData, ctx: ContextProtocol
+    args: ExtractedRequestData,
+    ctx: ContextProtocol,
+    table_prefix: str | None = None,
 ) -> RateLimiterRequestCount | None:
     if args.path is None:
         raise ValueError("fetch_rate_limiter_count: 'path' is required")
@@ -120,9 +138,9 @@ async def fetch_rate_limiter_count(
 
     # Calculation
     # Gather the counts concurrently
-    monthly_count = fetch_rate_limiter_monthly_count(args, ctx)
-    daily_count = fetch_rate_limiter_daily_count(args, ctx)
-    hourly_count = fetch_rate_limiter_hourly_count(args, ctx)
+    monthly_count = fetch_rate_limiter_monthly_count(args, ctx, table_prefix)
+    daily_count = fetch_rate_limiter_daily_count(args, ctx, table_prefix)
+    hourly_count = fetch_rate_limiter_hourly_count(args, ctx, table_prefix)
 
     result = await asyncio.gather(monthly_count, daily_count, hourly_count)
     count = RateLimiterRequestCount(
@@ -137,24 +155,30 @@ async def fetch_rate_limiter_count(
 
 
 async def fetch_rate_limiter_monthly_count(
-    args: ExtractedRequestData, ctx: ContextProtocol
+    args: ExtractedRequestData,
+    ctx: ContextProtocol,
+    table_prefix: str | None = None,
 ) -> int:
     now = datetime.now(tz=UTC)
     year = now.year
     month = now.month
     month_key = (year * 100) + month
+    table = resolve_table_name(DEFAULT_REQUEST_TABLE, table_prefix)
     try:
         async with ctx.reader.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(
+                query = sql.SQL(
                     """
                     SELECT COUNT(*)
-                    FROM request_logger_request
+                    FROM {table}
                     WHERE
                         month = %(month_key)s
                       AND path = %(path)s
                       AND product_name = %(product_name)s
-                    """,
+                    """
+                ).format(table=sql.Identifier(table))
+                await cur.execute(
+                    query,
                     {
                         "month_key": month_key,
                         "path": args.path,
@@ -183,25 +207,31 @@ async def fetch_rate_limiter_monthly_count(
 
 
 async def fetch_rate_limiter_daily_count(
-    args: ExtractedRequestData, ctx: ContextProtocol
+    args: ExtractedRequestData,
+    ctx: ContextProtocol,
+    table_prefix: str | None = None,
 ) -> int:
     now = datetime.now(tz=UTC)
     year = now.year
     month = now.month
     day = now.day
     day_key = (((year * 100) + month) * 100) + day
+    table = resolve_table_name(DEFAULT_REQUEST_TABLE, table_prefix)
     try:
         async with ctx.reader.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(
+                query = sql.SQL(
                     """
                     SELECT COUNT(*)
-                    FROM request_logger_request
+                    FROM {table}
                     WHERE
                         day = %(day_key)s
                       AND path = %(path)s
                       AND product_name = %(product_name)s
-                    """,
+                    """
+                ).format(table=sql.Identifier(table))
+                await cur.execute(
+                    query,
                     {
                         "day_key": day_key,
                         "path": args.path,
@@ -229,7 +259,9 @@ async def fetch_rate_limiter_daily_count(
 
 
 async def fetch_rate_limiter_hourly_count(
-    args: ExtractedRequestData, ctx: ContextProtocol
+    args: ExtractedRequestData,
+    ctx: ContextProtocol,
+    table_prefix: str | None = None,
 ) -> int:
     now = datetime.now(tz=UTC)
     year = now.year
@@ -237,18 +269,22 @@ async def fetch_rate_limiter_hourly_count(
     day = now.day
     hour = now.hour
     hour_key = ((((year * 100) + month) * 100 + day) * 100) + hour
+    table = resolve_table_name(DEFAULT_REQUEST_TABLE, table_prefix)
     try:
         async with ctx.reader.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(
+                query = sql.SQL(
                     """
                     SELECT COUNT(*)
-                    FROM request_logger_request
+                    FROM {table}
                     WHERE
                         hour = %(hour_key)s
                       AND path = %(path)s
-                        AND product_name = %(product_name)s
-                    """,
+                      AND product_name = %(product_name)s
+                    """
+                ).format(table=sql.Identifier(table))
+                await cur.execute(
+                    query,
                     {
                         "hour_key": hour_key,
                         "path": args.path,
