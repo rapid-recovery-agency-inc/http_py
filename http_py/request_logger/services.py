@@ -33,9 +33,7 @@ async def database_request_logger_middleware(
     request_uuid = str(uuid.uuid4())
     path = request.url.path
     if path in path_whitelist:
-        response: Response = await call_next(request)
-        response.headers[REQUEST_LOGGER_HEADER] = request_uuid
-        return response
+        return await call_next(request)
 
     ctx = create_service_context(request)
 
@@ -51,9 +49,7 @@ async def database_request_logger_middleware(
         validate_request_data(type(req_data)(**req_data_dict))
     except ValueError as err:
         logger.error(f"database_request_logger_middleware: {err}")
-        error_response = JSONResponse(status_code=400, content={"error": str(err)})
-        error_response.headers[REQUEST_LOGGER_HEADER] = request_uuid
-        return error_response
+        return JSONResponse(status_code=400, content={"error": str(err)})
 
     response_headers: str | None = None
     response_body: str | None = None
