@@ -8,9 +8,8 @@ This module provides HTTP request/response logging functionality as Starlette mi
 
 - `__init__.py` now exports `ConsoleRequestLoggerMiddleware` and `DatabaseRequestLoggerMiddleware` directly.
 - Request logging now persists `status_code`, `duration_ms`, and `request_uuid` with each record.
-- The middleware always generates a `request_uuid` and exposes it to the consumer through the `RRA-Request-Logger-Request-ID` response header.
-- When the middleware generates the request ID internally, the value is still returned in the response header for both successful responses and validation-error responses.
-- Validation failures return `400` JSON responses without skipping request ID propagation.
+- Whitelisted paths bypass logging and do not receive `RRA-Request-Logger-Request-ID`.
+- Validation failures return `400` JSON responses and do not include `RRA-Request-Logger-Request-ID`.
 
 ## Architecture
 
@@ -42,7 +41,7 @@ This module provides HTTP request/response logging functionality as Starlette mi
 
 | File | Description |
 |------|-------------|
-| `__init__.py` | Exports `create_request_logger_middleware` |
+| `__init__.py` | Exports `ConsoleRequestLoggerMiddleware` and `DatabaseRequestLoggerMiddleware` |
 | `services.py` | Middleware factory and core middleware logic |
 | `types.py` | `RequestArgs` dataclass for passing request data |
 | `utils.py` | `save_request()` database persistence function |
@@ -118,11 +117,11 @@ app.add_middleware(
 
 ## Request Flow
 
-1. **Request ID Creation**: Generates a `request_uuid` at the start of the middleware.
-2. **Whitelist Check**: Requests to whitelisted paths bypass persistence, but still receive the request ID response header.
+1. **Request ID Creation**: Generates a `request_uuid` for correlation of persistable requests.
+2. **Whitelist Check**: Requests to whitelisted paths bypass persistence and return without request ID response headers.
 3. **Context Creation**: Creates service context from request.
 4. **Data Extraction**: Extracts path, headers, body, and product metadata.
-5. **Validation**: Invalid request metadata returns a `400` JSON response and still includes the request ID response header.
+5. **Validation**: Invalid request metadata returns a `400` JSON response with no request ID response header.
 6. **Handler Execution**: Calls downstream request handler.
 7. **Response Capture**: Consumes `StreamingResponse` body and recreates the iterator.
 8. **Persistence**: Saves complete request/response data, status code, duration, and request UUID to PostgreSQL.
@@ -130,9 +129,9 @@ app.add_middleware(
 
 ## Response Header Contract
 
-- `request_uuid` is always returned to the consumer in the response.
-- When the service generates it, the value is exposed via the `RRA-Request-Logger-Request-ID` response header.
-- This applies to both successful responses and validation-error responses.
+- `request_uuid` is persisted only for requests that pass whitelist and validation checks.
+- The `RRA-Request-Logger-Request-ID` response header is added only on responses that continue through the normal logging flow.
+- Whitelisted and validation-error responses are intentionally returned without this header.
 
 ## Product Metadata Extraction
 
@@ -152,7 +151,7 @@ Matches the rate_limiter module for cross-querying:
 ## Error Handling
 
 - Returns `400` JSON responses when request metadata validation fails.
-- Includes `RRA-Request-Logger-Request-ID` in validation-error responses.
+- Validation-error responses do not include `RRA-Request-Logger-Request-ID`.
 - Logs request data even when the downstream handler raises an exception.
 - Re-raises the original exception after persistence.
 - Logs `PoolTimeout` exceptions from the connection pool.
