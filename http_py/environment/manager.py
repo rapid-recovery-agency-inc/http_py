@@ -1,7 +1,7 @@
 """Generic environment manager bound to a frozen dataclass shape."""
 
 from typing import Any, TypeVar
-from collections.abc import Mapping
+from collections.abc import Mapping, Callable
 
 from http_py.environment.coercion import to_dataclass_dict
 from http_py.environment.validation import validate_keys
@@ -31,6 +31,10 @@ class EnvironmentManager[T]:
         dataclass_type: A frozen ``@dataclass`` class.
         mandatory_keys: Keys that :meth:`load` will enforce before
             accepting external data.
+        post_set_hook: Optional callback invoked after each
+            :meth:`set_environment` call.  It receives the newly built
+            ``T`` instance and must return a (possibly modified) ``T``
+            that becomes the stored state.
     """
 
     def __init__(
@@ -38,9 +42,11 @@ class EnvironmentManager[T]:
         dataclass_type: type[T],
         *,
         mandatory_keys: list[str] | None = None,
+        post_set_hook: Callable[[T], T] | None = None,
     ) -> None:
         self._dataclass_type = dataclass_type
         self._mandatory_keys = mandatory_keys or []
+        self._post_set_hook = post_set_hook
         self._state: dict[str, Any] = {}
 
     # ------------------------------------------------------------------
@@ -66,6 +72,11 @@ class EnvironmentManager[T]:
         """
         coerced = to_dataclass_dict(self._dataclass_type, raw)
         self._state = {**self._state, **coerced}
+
+        if self._post_set_hook is not None:
+            instance = self._dataclass_type(**self._state)
+            transformed = self._post_set_hook(instance)
+            self._state = {**transformed.__dict__}
 
     def load(self, raw: Mapping[str, Any]) -> None:
         """Validate mandatory keys in *raw*, then delegate to :meth:`set_environment`.

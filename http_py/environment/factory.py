@@ -24,6 +24,8 @@ frozen ``@dataclass`` type.  Then re-export the bound ``env`` and
     set_environment(os.environ)
 """
 
+from collections.abc import Callable
+
 from http_py.environment.manager import EnvironmentManager
 
 
@@ -31,6 +33,7 @@ def create_environment[T](
     dataclass_type: type[T],
     *,
     mandatory_keys: list[str] | None = None,
+    post_set_hook: Callable[[T], T] | None = None,
 ) -> EnvironmentManager[T]:
     """Create an :class:`EnvironmentManager` bound to *dataclass_type*.
 
@@ -57,6 +60,10 @@ def create_environment[T](
             shape and types of the environment.
         mandatory_keys: Field names that :meth:`EnvironmentManager.load`
             will require before accepting external data.
+        post_set_hook: Optional callback invoked after each
+            :meth:`~EnvironmentManager.set_environment` call.  It
+            receives the newly built ``T`` instance and must return a
+            (possibly modified) ``T`` that becomes the stored state.
 
     Returns:
         A fully initialised :class:`EnvironmentManager` instance.
@@ -64,4 +71,5 @@ def create_environment[T](
     return EnvironmentManager(
         dataclass_type,
         mandatory_keys=mandatory_keys,
+        post_set_hook=post_set_hook,
     )

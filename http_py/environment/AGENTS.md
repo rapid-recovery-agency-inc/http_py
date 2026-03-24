@@ -21,6 +21,7 @@ This module provides type-safe environment variable management using frozen data
 ┌─────────────────────────────────────────────────────────────┐
 │              create_environment(AppEnv)                     │
 │  - Creates EnvironmentManager bound to dataclass type       │
+│  - Accepts optional post_set_hook callback                  │
 │  - Returns manager with env() and set_environment()         │
 └─────────────────────┬───────────────────────────────────────┘
                       │
@@ -68,8 +69,16 @@ Generic manager bound to a frozen dataclass type. Accumulates state from multipl
 | Method | Description |
 |--------|-------------|
 | `env()` | Returns a **new** frozen `T` instance from accumulated state |
-| `set_environment(raw)` | Coerce and merge raw dict on top of current state |
+| `set_environment(raw)` | Coerce and merge raw dict on top of current state. If a `post_set_hook` is configured, it is invoked with the resulting `T` instance and the returned `T` replaces the stored state. |
 | `load(raw)` | Validate mandatory keys, then delegate to `set_environment` |
+
+#### Constructor Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `dataclass_type` | `type[T]` | A frozen `@dataclass` class defining the environment shape |
+| `mandatory_keys` | `list[str] \| None` | Field names that `load()` will require before accepting data |
+| `post_set_hook` | `Callable[[T], T] \| None` | Optional callback invoked after each `set_environment()` call. Receives the newly built `T` instance and must return a (possibly modified) `T` that becomes the stored state. |
 
 ### Type Coercion
 
@@ -131,6 +140,29 @@ _manager = create_environment(
 )
 
 # Export bound methods
+env = _manager.env
+set_environment = _manager.set_environment
+```
+
+### Post-Set Hook
+
+Use `post_set_hook` to transform or enrich the environment after each `set_environment()` call. The hook receives the newly built `T` instance and must return a `T` instance that becomes the stored state:
+
+```python
+from dataclasses import dataclass, replace
+from http_py.environment import create_environment
+
+@dataclass(frozen=True)
+class AppEnv:
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_URL: str = ""
+
+def build_db_url(env: AppEnv) -> AppEnv:
+    url = f"postgresql://{env.DB_HOST}:{env.DB_PORT}"
+    return replace(env, DB_URL=url)
+
+_manager = create_environment(AppEnv, post_set_hook=build_db_url)
 env = _manager.env
 set_environment = _manager.set_environment
 ```
