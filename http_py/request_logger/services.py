@@ -23,12 +23,13 @@ from http_py.request_logger.constants import REQUEST_LOGGER_HEADER
 logger = create_logger(__name__)
 
 
-async def database_request_logger_middleware(
+async def database_request_logger_middleware(  # noqa: PLR0913
     path_whitelist: list[str],
     request: Request,
     call_next: RequestResponseEndpoint,
     create_service_context: ContextFactory,
     override: RequestLoggerOverride | None = None,
+    table_prefix: str | None = None,
 ) -> Response:
     request_uuid = str(uuid.uuid4())
     path = request.url.path
@@ -75,7 +76,7 @@ async def database_request_logger_middleware(
             duration_ms=duration_ms,
             request_uuid=request_uuid,
         )
-        await save_request(args)
+        await save_request(args, table_prefix)
         raise err
 
     response.headers[REQUEST_LOGGER_HEADER] = request_uuid
@@ -108,7 +109,7 @@ async def database_request_logger_middleware(
         duration_ms=duration_ms,
         request_uuid=request_uuid,
     )
-    await save_request(args)
+    await save_request(args, table_prefix)
     return response
 
 
@@ -141,11 +142,13 @@ class DatabaseRequestLoggerMiddleware(BaseHTTPMiddleware):
         path_whitelist: list[str],
         create_service_context: ContextFactory,
         override: RequestLoggerOverride | None = None,
+        table_prefix: str | None = None,
     ):
         super().__init__(app)
         self.path_whitelist = path_whitelist
         self.create_service_context = create_service_context
         self.override = override
+        self.table_prefix = table_prefix
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
@@ -156,4 +159,5 @@ class DatabaseRequestLoggerMiddleware(BaseHTTPMiddleware):
             call_next,
             self.create_service_context,
             self.override,
+            self.table_prefix,
         )
