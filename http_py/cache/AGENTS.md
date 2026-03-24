@@ -82,6 +82,12 @@ await cache.set("config:app", {"debug": True})
 config = await cache.get("config:app")
 ```
 
+**SQLAlchemy adapter support:**
+
+Existing psycopg-based cache usage stays unchanged. If a downstream project opts into the SQLAlchemy path from `http_py.sqla.context`, `DatabaseCache` should continue to work against the same connection-pool-like interface exposed by the context layer.
+
+The default API must remain unchanged for psycopg users.
+
 **Features:**
 - PostgreSQL with JSONB storage
 - SHA-256 hashed keys for consistent key length

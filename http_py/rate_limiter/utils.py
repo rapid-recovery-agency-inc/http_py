@@ -1,8 +1,11 @@
+"""Rate limiter SQL helpers."""
+
+# ruff: noqa: S608
+
 import asyncio
-from typing import cast
+from typing import Any, cast
 from datetime import UTC, datetime
 
-from psycopg import sql
 from psycopg_pool import PoolTimeout
 
 from http_py.context import ContextProtocol
@@ -13,6 +16,7 @@ from http_py.rate_limiter.types import (
     RateLimitException,
     RateLimiterRequestCount,
 )
+from http_py.database.exceptions import DatabaseTimeoutError
 from http_py.request_logger.utils import resolve_table_name
 from http_py.cache.in_memory_cache import InMemoryCache
 
@@ -24,6 +28,52 @@ DEFAULT_RULE_TABLE = "rate_limiter_rule"
 DEFAULT_REQUEST_TABLE = "request_logger_request"
 
 logger = create_logger(__name__)
+
+
+def _build_rule_query(table: str) -> str:
+    return f"""
+        SELECT
+            path,
+            product_name,
+            daily_limit,
+            monthly_limit,
+            hourly_limit
+        FROM
+            {table}
+        WHERE
+            path = %(path)s
+            AND product_name = %(product_name)s
+        LIMIT
+            1
+    """
+
+
+def _build_count_query(table: str, time_column: str) -> str:
+    return f"""
+        SELECT COUNT(*)
+        FROM {table}
+        WHERE
+            {time_column} = %(time_key)s
+          AND path = %(path)s
+          AND product_name = %(product_name)s
+    """
+
+
+def _describe_pool(pool: Any) -> dict[str, Any]:
+    meta: dict[str, Any] = {}
+
+    get_stats = getattr(pool, "get_stats", None)
+    if callable(get_stats):
+        try:
+            meta["stats"] = get_stats()
+        except Exception:  # pragma: no cover - diagnostic fallback
+            pass
+
+    timeout = getattr(pool, "timeout", None)
+    if timeout is not None:
+        meta["timeout"] = timeout
+
+    return meta
 
 
 async def assert_capacity(
@@ -83,23 +133,7 @@ async def fetch_rate_limiter_rule(
     # Calculation
     async with ctx.reader.connection() as conn:
         async with conn.cursor() as cur:
-            query = sql.SQL(
-                """
-                SELECT
-                    path,
-                    product_name,
-                    daily_limit,
-                    monthly_limit,
-                    hourly_limit
-                FROM
-                    {table}
-                WHERE
-                    path = %(path)s
-                    AND product_name = %(product_name)s
-                LIMIT
-                    1
-                """
-            ).format(table=sql.Identifier(table))
+            query = _build_rule_query(table)
             await cur.execute(
                 query,
                 {"path": args.path, "product_name": args.product_name},
@@ -167,20 +201,11 @@ async def fetch_rate_limiter_monthly_count(
     try:
         async with ctx.reader.connection() as conn:
             async with conn.cursor() as cur:
-                query = sql.SQL(
-                    """
-                    SELECT COUNT(*)
-                    FROM {table}
-                    WHERE
-                        month = %(month_key)s
-                      AND path = %(path)s
-                      AND product_name = %(product_name)s
-                    """
-                ).format(table=sql.Identifier(table))
+                query = _build_count_query(table, "month")
                 await cur.execute(
                     query,
                     {
-                        "month_key": month_key,
+                        "time_key": month_key,
                         "path": args.path,
                         "product_name": args.product_name,
                     },
@@ -192,11 +217,8 @@ async def fetch_rate_limiter_monthly_count(
         else:
             count = 0
         return int(count)
-    except PoolTimeout as e:
-        meta = {
-            "stats": ctx.reader.get_stats(),
-            "timeout": ctx.reader.timeout,
-        }
+    except (PoolTimeout, DatabaseTimeoutError) as e:
+        meta = _describe_pool(ctx.reader)
         logger.error(
             "fetch_rate_limiter_monthly_count: PoolTimeout occurred meta=%r, "
             "exc_info=%r",
@@ -220,20 +242,11 @@ async def fetch_rate_limiter_daily_count(
     try:
         async with ctx.reader.connection() as conn:
             async with conn.cursor() as cur:
-                query = sql.SQL(
-                    """
-                    SELECT COUNT(*)
-                    FROM {table}
-                    WHERE
-                        day = %(day_key)s
-                      AND path = %(path)s
-                      AND product_name = %(product_name)s
-                    """
-                ).format(table=sql.Identifier(table))
+                query = _build_count_query(table, "day")
                 await cur.execute(
                     query,
                     {
-                        "day_key": day_key,
+                        "time_key": day_key,
                         "path": args.path,
                         "product_name": args.product_name,
                     },
@@ -245,11 +258,8 @@ async def fetch_rate_limiter_daily_count(
         else:
             count = result[0]
         return int(count)
-    except PoolTimeout as e:
-        meta = {
-            "stats": ctx.reader.get_stats(),
-            "timeout": ctx.reader.timeout,
-        }
+    except (PoolTimeout, DatabaseTimeoutError) as e:
+        meta = _describe_pool(ctx.reader)
         logger.error(
             "fetch_rate_limiter_daily_count: PoolTimeout occurred meta=%r, exc_info=%r",
             meta,
@@ -273,20 +283,11 @@ async def fetch_rate_limiter_hourly_count(
     try:
         async with ctx.reader.connection() as conn:
             async with conn.cursor() as cur:
-                query = sql.SQL(
-                    """
-                    SELECT COUNT(*)
-                    FROM {table}
-                    WHERE
-                        hour = %(hour_key)s
-                      AND path = %(path)s
-                      AND product_name = %(product_name)s
-                    """
-                ).format(table=sql.Identifier(table))
+                query = _build_count_query(table, "hour")
                 await cur.execute(
                     query,
                     {
-                        "hour_key": hour_key,
+                        "time_key": hour_key,
                         "path": args.path,
                         "product_name": args.product_name,
                     },
@@ -298,11 +299,8 @@ async def fetch_rate_limiter_hourly_count(
         else:
             count = result[0]
         return int(count)
-    except PoolTimeout as e:
-        meta = {
-            "stats": ctx.reader.get_stats(),
-            "timeout": ctx.reader.timeout,
-        }
+    except (PoolTimeout, DatabaseTimeoutError) as e:
+        meta = _describe_pool(ctx.reader)
         logger.error(
             "fetch_rate_limiter_hourly_count: PoolTimeout occurred meta=%r, "
             "exc_info=%r",

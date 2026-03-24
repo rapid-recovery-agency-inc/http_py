@@ -155,6 +155,14 @@ await cleanup_connections_pools()
 3. **Load Balancer Strategy**: Pluggable selection (round-robin, least-connections)
 4. **Connection Wrapper**: Add tracing, logging, or query interception
 
+### SQLAlchemy Adapter Support
+
+http_py also ships an opt-in SQLAlchemy adapter in `http_py.sqla.adapters` and a dedicated SQLAlchemy context constructor in `http_py.sqla.context`.
+
+Use the SQLAlchemy path only when a downstream application explicitly opts in by importing and using the dedicated SQLAlchemy constructor.
+
+The default psycopg API and runtime behavior must stay unchanged when SQLAlchemy is not explicitly activated.
+
 ### Example: Class-Based Manager (Future)
 
 ```python

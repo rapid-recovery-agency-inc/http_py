@@ -139,6 +139,14 @@ Matches the rate_limiter module for cross-querying:
 - Logs `PoolTimeout` exceptions from connection pool
 - Logs warning for unexpected empty response bodies
 
+## SQLAlchemy Adapter Support
+
+The default request logging path remains psycopg pool-based.
+
+If a downstream project opts into the SQLAlchemy path from `http_py.sqla.context`, the request logger should continue to work through the same middleware API without requiring custom middleware behavior.
+
+The default API must not change for existing psycopg users.
+
 ## Dependencies
 
 - `starlette` - HTTP framework (StreamingResponse, iterate_in_threadpool)

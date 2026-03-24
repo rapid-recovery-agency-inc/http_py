@@ -178,6 +178,53 @@ async def create_user_endpoint(name: str, email: str):
 
 📖 [PostgreSQL Example](examples/postgres_example.py)
 
+The default psycopg pool-based API stays unchanged for existing users.
+
+If you need SQLAlchemy-backed usage, install the optional extra and opt in explicitly:
+
+```bash
+poetry add "http_py[sqla]"
+```
+
+```python
+from http_py.sqla.context import build_sqla_context_factory
+
+create_service_context = build_sqla_context_factory(
+    writer_engine=writer_engine,
+    reader_engines=[reader_engine_1, reader_engine_2],
+    name="mydb",
+)
+```
+
+If your application already owns a reader or writer engine container, use the engine-group convenience constructor instead:
+
+```python
+from http_py.sqla.context import build_sqla_context_factory_from_engine_group
+
+create_service_context = build_sqla_context_factory_from_engine_group(
+    engine_group=client_db,
+)
+```
+
+The engine group must expose:
+- a `writer` property returning a SQLAlchemy `AsyncEngine`
+- a `readers()` method returning a sequence of SQLAlchemy `AsyncEngine` objects
+
+For `foundd_pyengine`, this maps naturally to its `DatabaseEngine` container:
+
+```python
+from http_py.sqla.context import build_sqla_context_factory_from_engine_group
+
+create_service_context = build_sqla_context_factory_from_engine_group(
+    engine_group=client_db,
+    name=client_db.db_name,
+)
+```
+
+On the SQLAlchemy path, writer connections use an explicit transaction scope and reader connections use a direct connection scope.
+
+If you do not opt into the dedicated SQLAlchemy constructor path, http_py continues to use the default psycopg pool path.
+
 ---
 
 ### 📝 Logging
