@@ -19,9 +19,9 @@ repos:
         types: [python]
         pass_filenames: false
         always_run: true
-      - id: unittests
-        name: unittests
-        entry: poetry run python -m unittest discover -v
+      - id: pytest
+        name: pytest
+        entry: poetry run pytest -v
         language: system
         types: [python]
         pass_filenames: false
