@@ -1,13 +1,10 @@
-"""PostgreSQL-backed cache implementation with async support."""
-
 import json
 import time
 import hashlib
 from typing import Any
 
-from psycopg_pool import AsyncConnectionPool
-
 from http_py.logging.services import create_logger
+from http_py.database.protocols import ConnectionPoolProtocol
 
 
 logger = create_logger(__name__)
@@ -30,13 +27,12 @@ class DatabaseCache:
     Requires the cache table from 001_cache.sql migration.
 
     Args:
-        pool: AsyncConnectionPool for database connections.
-        table_name: Name of the cache table (default: "cache").
+        pool: connection pool-like object for database connections.
     """
 
     def __init__(
         self,
-        pool: AsyncConnectionPool,
+        pool: ConnectionPoolProtocol,
     ):
         self._pool = pool
 

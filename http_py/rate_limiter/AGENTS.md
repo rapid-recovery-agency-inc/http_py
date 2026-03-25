@@ -120,6 +120,14 @@ Counts use integer keys for efficient indexing:
 - Logs `PoolTimeout` exceptions with connection pool stats
 - Response includes request body and headers for debugging
 
+## SQLAlchemy Adapter Support
+
+The default rate limiter path remains psycopg pool-based and unchanged for existing users.
+
+If a downstream project opts into the SQLAlchemy path from `http_py.sqla.context`, the same middleware entry points should continue to work.
+
+Connection pool diagnostics are optional backend capabilities; use them when available and do not require them from the base seam.
+
 ## Dependencies
 
 - `starlette` - HTTP framework

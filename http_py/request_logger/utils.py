@@ -1,9 +1,13 @@
+"""Request logger SQL helpers."""
+
+# ruff: noqa: S608
+
 import re
 
-from psycopg import sql
 from psycopg_pool import PoolTimeout
 
 from http_py.logging.services import create_logger
+from http_py.database.exceptions import DatabaseTimeoutError
 from http_py.request_logger.types import RequestArgs
 
 
@@ -34,6 +38,24 @@ def resolve_table_name(default: str, table_prefix: str | None = None) -> str:
     return f"{table_prefix}_{default}"
 
 
+def _build_request_insert_query(table: str) -> str:
+    return f"""
+        INSERT INTO
+            {table}
+            (
+                path, product_name, product_module, product_feature,
+                product_tenant, from_cache, request_headers,
+                request_body, response_headers, response_body,
+                status_code, duration_ms
+            )
+        VALUES
+            (%(path)s,%(product_name)s,%(product_module)s,%(product_feature)s,
+            %(product_tenant)s, %(from_cache)s, %(request_headers)s,
+            %(request_body)s,%(response_headers)s, %(response_body)s,
+            %(status_code)s, %(duration_ms)s)
+    """
+
+
 async def save_request(args: RequestArgs, table_prefix: str | None = None) -> None:
     if any(
         v is None
@@ -48,23 +70,7 @@ async def save_request(args: RequestArgs, table_prefix: str | None = None) -> No
     try:
         async with args.ctx.writer_pool.connection() as conn:
             async with conn.cursor() as cur:
-                query = sql.SQL(
-                    """
-                    INSERT INTO
-                        {table}
-                        (
-                            path, product_name, product_module, product_feature,
-                            product_tenant, from_cache, request_headers,
-                            request_body, response_headers, response_body,
-                            status_code, duration_ms
-                        )
-                    VALUES
-                        (%(path)s,%(product_name)s,%(product_module)s,%(product_feature)s,
-                        %(product_tenant)s, %(from_cache)s, %(request_headers)s,
-                        %(request_body)s,%(response_headers)s, %(response_body)s,
-                        %(status_code)s, %(duration_ms)s)
-                    """
-                ).format(table=sql.Identifier(table))
+                query = _build_request_insert_query(table)
                 await cur.execute(
                     query,
                     {
@@ -82,6 +88,6 @@ async def save_request(args: RequestArgs, table_prefix: str | None = None) -> No
                         "duration_ms": args.duration_ms,
                     },
                 )
-    except PoolTimeout as e:
+    except (PoolTimeout, DatabaseTimeoutError) as e:
         logger.exception("save_request: PoolTimeout occurred", exc_info=e)
         raise e
