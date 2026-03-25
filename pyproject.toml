@@ -22,6 +22,7 @@ starlette = "^0.45.0"
 ruff = "0.15.1"
 pre-commit = "^4.5.1"
 mypy = "1.19.1"
+pytest = "^8.4.2"
 
 [tool.setuptools.packages.find]
 where = ["http_py"]
@@ -52,6 +53,11 @@ select = [
     "S",    # flake8-bandit:  https://docs.astral.sh/ruff/rules/#flake8-bandit-s
     "C90"   # flake8-mccabe: https://docs.astral.sh/ruff/rules/#mccabe-c90
 ]
+
+
+[tool.ruff.lint.per-file-ignores]
+"test_*.py" = ["S101", "PLR2004"]
+"**/test_*.py" = ["S101", "PLR2004"]
 
 
 [tool.ruff.lint.isort]

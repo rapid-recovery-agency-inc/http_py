@@ -10,6 +10,7 @@ from http_py.postgres import (
     get_async_writer_connection_pool,
     get_async_readers_connection_pools,
 )
+from http_py.utils.protocols import assert_conforms_to_protocol
 
 
 class ContextProtocol(Protocol):
@@ -47,6 +48,12 @@ class Context(ContextProtocol):
 def build_context_factory_dependency(
     env: PostgressEnvironment,
 ) -> ContextFactoryDependency:
+    assert_conforms_to_protocol(
+        env,
+        PostgressEnvironment,
+        variable_name="env",
+    )
+
     def dependency(request: Request) -> None:
         writer_pool = get_async_writer_connection_pool(env)
         reader_pools = get_async_readers_connection_pools(env)
@@ -62,6 +69,12 @@ def build_context_factory_dependency(
 def build_context_factory(
     env: PostgressEnvironment,
 ) -> ContextFactory:
+    assert_conforms_to_protocol(
+        env,
+        PostgressEnvironment,
+        variable_name="env",
+    )
+
     def factory(_: Request) -> ContextProtocol:
         writer_pool = get_async_writer_connection_pool(env)
         reader_pools = get_async_readers_connection_pools(env)

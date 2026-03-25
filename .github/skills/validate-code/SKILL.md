@@ -1,9 +1,9 @@
 ---
 name: validate-code
 description: >-
-  Run linting, formatting, type-checking, and unit tests for the http_py
-  codebase using pre-commit.  Use this skill whenever you need to validate
-  that code changes pass all quality gates before committing or pushing.
+   Run linting, formatting, type-checking, and pytest tests for the http_py
+   codebase using pre-commit. Use this skill whenever you need to validate
+   that code changes pass all quality gates before committing or pushing.
 ---
 
 # Validate Code
@@ -16,7 +16,7 @@ description: >-
 
 ## Command
 
-Run **all** pre-commit hooks (ruff lint + format, mypy, unit tests on push):
+Run **all** pre-commit hooks (ruff lint + format, mypy, pytest tests on push):
 
 ```bash
 poetry run pre-commit run --all-files
@@ -32,9 +32,9 @@ The `.pre-commit-config.yaml` defines these hooks:
 | **ruff-format** | pre-commit | Enforces consistent formatting (Black-compatible) |
 | **ruff (E501)** | pre-commit | Fails on remaining line-length violations |
 | **mypy** | pre-commit | Static type-checking across `http_py/` |
-| **unittests** | pre-push | Runs `python -m unittest discover -v` |
+| **pytest** | pre-push | Runs `pytest -v` |
 
-> **Note:** The `unittests` hook only runs on `pre-push` stage by default.
+> **Note:** The `pytest` hook only runs on `pre-push` stage by default.
 > To include it during local validation, run:
 >
 > ```bash
@@ -48,7 +48,7 @@ The `.pre-commit-config.yaml` defines these hooks:
    a clean pass.
 2. **mypy** — Type errors must be resolved manually. Read the mypy output
    for file paths and line numbers.
-3. **unittests** — Test failures include tracebacks. Fix the failing test or
+3. **pytest** — Test failures include tracebacks. Fix the failing test or
    the code under test.
 
 ## Quick Individual Commands
@@ -66,6 +66,6 @@ poetry run ruff check .
 # Type-check only
 poetry run mypy http_py
 
-# Unit tests only
-poetry run python -m unittest discover -v
+# Tests only
+poetry run pytest -v
 ```

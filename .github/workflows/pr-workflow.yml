@@ -24,10 +24,10 @@ jobs:
       - name: Running all hooks
         run: |
           pre-commit run --all-files
-      - name: Running unit tests
+      - name: Running tests
         if: github.event.pull_request.draft == false
         run: |
-          poetry run python -m unittest discover -v
+          poetry run pytest -v
       - name: Check for tests in PR
         if: github.event.pull_request.draft == false
         uses: rapid-recovery-agency-inc/check-for-tests-action@main
