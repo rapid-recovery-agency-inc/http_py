@@ -31,13 +31,11 @@ async def database_request_logger_middleware(  # noqa: PLR0913
     override: RequestLoggerOverride | None = None,
     table_prefix: str | None = None,
 ) -> Response:
-    request_uuid = str(uuid.uuid4())
     path = request.url.path
     if path in path_whitelist:
         return await call_next(request)
 
     ctx = create_service_context(request)
-
     req_data = await extract_request_data(request)
     # Merge overrides into req_data dict if provided
     req_data_dict = req_data.__dict__.copy()
@@ -74,11 +72,12 @@ async def database_request_logger_middleware(  # noqa: PLR0913
             response_body=response_body,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             duration_ms=duration_ms,
-            request_uuid=request_uuid,
+            request_uuid=str(uuid.uuid4()),
         )
         await save_request(args, table_prefix)
         raise err
 
+    request_uuid = str(uuid.uuid4())
     response.headers[REQUEST_LOGGER_HEADER] = request_uuid
     response_headers = str(response.headers)
     streaming_response = cast(StreamingResponse, response)
