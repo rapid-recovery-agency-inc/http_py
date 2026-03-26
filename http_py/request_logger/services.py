@@ -1,4 +1,5 @@
 import time
+import uuid
 from typing import cast
 
 from starlette import status
@@ -16,6 +17,7 @@ from http_py.requests.services import (
 )
 from http_py.request_logger.types import RequestArgs, RequestLoggerOverride
 from http_py.request_logger.utils import save_request
+from http_py.request_logger.constants import REQUEST_LOGGER_HEADER
 
 
 logger = create_logger(__name__)
@@ -31,11 +33,9 @@ async def database_request_logger_middleware(  # noqa: PLR0913
 ) -> Response:
     path = request.url.path
     if path in path_whitelist:
-        response: Response = await call_next(request)
-        return response
+        return await call_next(request)
 
     ctx = create_service_context(request)
-
     req_data = await extract_request_data(request)
     # Merge overrides into req_data dict if provided
     req_data_dict = req_data.__dict__.copy()
@@ -72,10 +72,13 @@ async def database_request_logger_middleware(  # noqa: PLR0913
             response_body=response_body,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             duration_ms=duration_ms,
+            request_uuid=str(uuid.uuid4()),
         )
         await save_request(args, table_prefix)
         raise err
 
+    request_uuid = str(uuid.uuid4())
+    response.headers[REQUEST_LOGGER_HEADER] = request_uuid
     response_headers = str(response.headers)
     streaming_response = cast(StreamingResponse, response)
     body = [chunk async for chunk in streaming_response.body_iterator]
@@ -103,6 +106,7 @@ async def database_request_logger_middleware(  # noqa: PLR0913
         response_body=response_body,
         status_code=response.status_code,
         duration_ms=duration_ms,
+        request_uuid=request_uuid,
     )
     await save_request(args, table_prefix)
     return response

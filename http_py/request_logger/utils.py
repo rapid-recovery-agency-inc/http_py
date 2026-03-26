@@ -56,13 +56,13 @@ async def save_request(args: RequestArgs, table_prefix: str | None = None) -> No
                             path, product_name, product_module, product_feature,
                             product_tenant, from_cache, request_headers,
                             request_body, response_headers, response_body,
-                            status_code, duration_ms
+                            status_code, duration_ms, request_uuid
                         )
                     VALUES
                         (%(path)s,%(product_name)s,%(product_module)s,%(product_feature)s,
                         %(product_tenant)s, %(from_cache)s, %(request_headers)s,
                         %(request_body)s,%(response_headers)s, %(response_body)s,
-                        %(status_code)s, %(duration_ms)s)
+                        %(status_code)s, %(duration_ms)s), %(request_uuid)s)
                     """
                 ).format(table=sql.Identifier(table))
                 await cur.execute(
@@ -80,6 +80,7 @@ async def save_request(args: RequestArgs, table_prefix: str | None = None) -> No
                         "response_body": args.response_body,
                         "status_code": args.status_code,
                         "duration_ms": args.duration_ms,
+                        "request_uuid": args.request_uuid,
                     },
                 )
     except PoolTimeout as e:
