@@ -30,10 +30,19 @@ async def assert_capacity(
     args: ExtractedRequestData,
     ctx: ContextProtocol,
     table_prefix: str | None = None,
+    rule_caching_expiration_seconds: int = RULE_CACHING_EXPIRATION_IN_SECONDS,
 ) -> None:
     async with asyncio.TaskGroup() as tg:
-        task1 = tg.create_task(fetch_rate_limiter_rule(args, ctx, table_prefix))
-        task2 = tg.create_task(fetch_rate_limiter_count(args, ctx, table_prefix))
+        task1 = tg.create_task(
+            fetch_rate_limiter_rule(
+                args, ctx, table_prefix, rule_caching_expiration_seconds
+            )
+        )
+        task2 = tg.create_task(
+            fetch_rate_limiter_count(
+                args, ctx, table_prefix, rule_caching_expiration_seconds
+            )
+        )
 
     rule: RateLimiterRule | None = task1.result()
     count: RateLimiterRequestCount | None = task2.result()
@@ -66,6 +75,7 @@ async def fetch_rate_limiter_rule(
     args: ExtractedRequestData,
     ctx: ContextProtocol,
     table_prefix: str | None = None,
+    rule_caching_expiration_seconds: int = RULE_CACHING_EXPIRATION_IN_SECONDS,
 ) -> RateLimiterRule | None:
     if args.path is None:
         raise ValueError("fetch_rate_limiter_rule: 'path' is required")
@@ -116,7 +126,7 @@ async def fetch_rate_limiter_rule(
             monthly_limit=result[3],
             hourly_limit=result[4],
         )
-        CACHE.set(cache_key, rule, RULE_CACHING_EXPIRATION_IN_SECONDS)
+        CACHE.set(cache_key, rule, rule_caching_expiration_seconds)
         return rule
 
 
@@ -124,6 +134,7 @@ async def fetch_rate_limiter_count(
     args: ExtractedRequestData,
     ctx: ContextProtocol,
     table_prefix: str | None = None,
+    rule_caching_expiration_seconds: int = RULE_CACHING_EXPIRATION_IN_SECONDS,
 ) -> RateLimiterRequestCount | None:
     if args.path is None:
         raise ValueError("fetch_rate_limiter_count: 'path' is required")
@@ -150,7 +161,7 @@ async def fetch_rate_limiter_count(
         daily_count=result[1],
         hourly_count=result[2],
     )
-    CACHE.set(cache_key, count, RULE_CACHING_EXPIRATION_IN_SECONDS)
+    CACHE.set(cache_key, count, rule_caching_expiration_seconds)
     return count
 
 

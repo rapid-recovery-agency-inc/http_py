@@ -9,18 +9,22 @@ from http_py.context import ContextFactory
 from http_py.logging.services import create_logger
 from http_py.requests.services import extract_request_data
 from http_py.rate_limiter.types import RateLimitException
-from http_py.rate_limiter.utils import assert_capacity
+from http_py.rate_limiter.utils import (
+    assert_capacity,
+    RULE_CACHING_EXPIRATION_IN_SECONDS,
+)
 
 
 logger = create_logger(__name__)
 
 
-async def rate_limiter_middleware(
+async def rate_limiter_middleware(  # noqa: PLR0913
     path_whitelist: list[str],
     request: Request,
     call_next: RequestResponseEndpoint,
     create_service_context: ContextFactory,
     table_prefix: str | None = None,
+    rule_caching_expiration_seconds: int = RULE_CACHING_EXPIRATION_IN_SECONDS,
 ) -> Response:
     path = request.url.path
     if path in path_whitelist:
@@ -30,7 +34,9 @@ async def rate_limiter_middleware(
     ctx = create_service_context(request)
     req_data = await extract_request_data(request)
     try:
-        await assert_capacity(req_data, ctx, table_prefix)
+        await assert_capacity(
+            req_data, ctx, table_prefix, rule_caching_expiration_seconds
+        )
     except RateLimitException as err:
         request_body = (await request.body()).decode("utf-8")
         headers = str(request.headers)
@@ -56,11 +62,13 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         path_whitelist: list[str],
         create_service_context: ContextFactory,
         table_prefix: str | None = None,
+        rule_caching_expiration_seconds: int = RULE_CACHING_EXPIRATION_IN_SECONDS,
     ):
         super().__init__(app)
         self.path_whitelist = path_whitelist
         self.create_service_context = create_service_context
         self.table_prefix = table_prefix
+        self.rule_caching_expiration_seconds = rule_caching_expiration_seconds
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
@@ -71,4 +79,5 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             call_next,
             self.create_service_context,
             self.table_prefix,
+            self.rule_caching_expiration_seconds,
         )
