@@ -18,8 +18,6 @@ from http_py.cache.in_memory_cache import InMemoryCache
 
 
 CACHE = InMemoryCache()
-RULE_CACHING_EXPIRATION_IN_SECONDS = 300
-
 DEFAULT_RULE_TABLE = "rate_limiter_rule"
 DEFAULT_REQUEST_TABLE = "request_logger_request"
 
@@ -29,18 +27,21 @@ logger = create_logger(__name__)
 async def assert_capacity(
     args: ExtractedRequestData,
     ctx: ContextProtocol,
+    rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
-    rule_caching_expiration_seconds: int = RULE_CACHING_EXPIRATION_IN_SECONDS,
 ) -> None:
     async with asyncio.TaskGroup() as tg:
         task1 = tg.create_task(
             fetch_rate_limiter_rule(
-                args, ctx, table_prefix, rule_caching_expiration_seconds
+                args,
+                ctx,
+                rule_caching_expiration_seconds,
+                table_prefix,
             )
         )
         task2 = tg.create_task(
             fetch_rate_limiter_count(
-                args, ctx, table_prefix, rule_caching_expiration_seconds
+                args, ctx, rule_caching_expiration_seconds, table_prefix
             )
         )
 
@@ -74,8 +75,8 @@ async def assert_capacity(
 async def fetch_rate_limiter_rule(
     args: ExtractedRequestData,
     ctx: ContextProtocol,
+    rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
-    rule_caching_expiration_seconds: int = RULE_CACHING_EXPIRATION_IN_SECONDS,
 ) -> RateLimiterRule | None:
     if args.path is None:
         raise ValueError("fetch_rate_limiter_rule: 'path' is required")
@@ -133,8 +134,8 @@ async def fetch_rate_limiter_rule(
 async def fetch_rate_limiter_count(
     args: ExtractedRequestData,
     ctx: ContextProtocol,
+    rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
-    rule_caching_expiration_seconds: int = RULE_CACHING_EXPIRATION_IN_SECONDS,
 ) -> RateLimiterRequestCount | None:
     if args.path is None:
         raise ValueError("fetch_rate_limiter_count: 'path' is required")

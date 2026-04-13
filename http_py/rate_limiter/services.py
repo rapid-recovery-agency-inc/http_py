@@ -9,10 +9,8 @@ from http_py.context import ContextFactory
 from http_py.logging.services import create_logger
 from http_py.requests.services import extract_request_data
 from http_py.rate_limiter.types import RateLimitException
-from http_py.rate_limiter.utils import (
-    assert_capacity,
-    RULE_CACHING_EXPIRATION_IN_SECONDS,
-)
+from http_py.rate_limiter.utils import assert_capacity
+from http_py.rate_limiter.constants import RULE_CACHING_EXPIRATION_IN_SECONDS
 
 
 logger = create_logger(__name__)
@@ -23,8 +21,8 @@ async def rate_limiter_middleware(  # noqa: PLR0913
     request: Request,
     call_next: RequestResponseEndpoint,
     create_service_context: ContextFactory,
+    rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
-    rule_caching_expiration_seconds: int = RULE_CACHING_EXPIRATION_IN_SECONDS,
 ) -> Response:
     path = request.url.path
     if path in path_whitelist:
@@ -35,7 +33,7 @@ async def rate_limiter_middleware(  # noqa: PLR0913
     req_data = await extract_request_data(request)
     try:
         await assert_capacity(
-            req_data, ctx, table_prefix, rule_caching_expiration_seconds
+            req_data, ctx, rule_caching_expiration_seconds, table_prefix
         )
     except RateLimitException as err:
         request_body = (await request.body()).decode("utf-8")
@@ -78,6 +76,6 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             request,
             call_next,
             self.create_service_context,
-            self.table_prefix,
             self.rule_caching_expiration_seconds,
+            self.table_prefix,
         )
