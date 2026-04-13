@@ -18,8 +18,6 @@ from http_py.cache.in_memory_cache import InMemoryCache
 
 
 CACHE = InMemoryCache()
-RULE_CACHING_EXPIRATION_IN_SECONDS = 300
-
 DEFAULT_RULE_TABLE = "rate_limiter_rule"
 DEFAULT_REQUEST_TABLE = "request_logger_request"
 
@@ -29,11 +27,23 @@ logger = create_logger(__name__)
 async def assert_capacity(
     args: ExtractedRequestData,
     ctx: ContextProtocol,
+    rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
 ) -> None:
     async with asyncio.TaskGroup() as tg:
-        task1 = tg.create_task(fetch_rate_limiter_rule(args, ctx, table_prefix))
-        task2 = tg.create_task(fetch_rate_limiter_count(args, ctx, table_prefix))
+        task1 = tg.create_task(
+            fetch_rate_limiter_rule(
+                args,
+                ctx,
+                rule_caching_expiration_seconds,
+                table_prefix,
+            )
+        )
+        task2 = tg.create_task(
+            fetch_rate_limiter_count(
+                args, ctx, rule_caching_expiration_seconds, table_prefix
+            )
+        )
 
     rule: RateLimiterRule | None = task1.result()
     count: RateLimiterRequestCount | None = task2.result()
@@ -65,6 +75,7 @@ async def assert_capacity(
 async def fetch_rate_limiter_rule(
     args: ExtractedRequestData,
     ctx: ContextProtocol,
+    rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
 ) -> RateLimiterRule | None:
     if args.path is None:
@@ -116,13 +127,14 @@ async def fetch_rate_limiter_rule(
             monthly_limit=result[3],
             hourly_limit=result[4],
         )
-        CACHE.set(cache_key, rule, RULE_CACHING_EXPIRATION_IN_SECONDS)
+        CACHE.set(cache_key, rule, rule_caching_expiration_seconds)
         return rule
 
 
 async def fetch_rate_limiter_count(
     args: ExtractedRequestData,
     ctx: ContextProtocol,
+    rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
 ) -> RateLimiterRequestCount | None:
     if args.path is None:
@@ -150,7 +162,7 @@ async def fetch_rate_limiter_count(
         daily_count=result[1],
         hourly_count=result[2],
     )
-    CACHE.set(cache_key, count, RULE_CACHING_EXPIRATION_IN_SECONDS)
+    CACHE.set(cache_key, count, rule_caching_expiration_seconds)
     return count
 
 

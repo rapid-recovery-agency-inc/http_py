@@ -92,5 +92,6 @@ python_version = "3.14"
 strict = true
 implicit_reexport = true  # Insightt has convention of not using __all__
 exclude = [
-    'examples/*'
+    'examples/*',
+    '.*/tests/.*',
 ]
