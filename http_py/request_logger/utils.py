@@ -62,7 +62,8 @@ async def save_request(args: RequestArgs, table_prefix: str | None = None) -> No
                         (%(path)s,%(product_name)s,%(product_module)s,%(product_feature)s,
                         %(product_tenant)s, %(from_cache)s, %(request_headers)s,
                         %(request_body)s,%(response_headers)s, %(response_body)s,
-                        %(status_code)s, %(duration_ms)s), %(request_uuid)s)
+                        %(status_code)s, %(duration_ms)s, %(request_uuid)s
+                        )
                     """
                 ).format(table=sql.Identifier(table))
                 await cur.execute(
