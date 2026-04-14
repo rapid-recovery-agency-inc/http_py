@@ -35,6 +35,8 @@ async def database_request_logger_middleware(  # noqa: PLR0913
     if path in path_whitelist:
         return await call_next(request)
 
+    request_uuid = str(uuid.uuid4())
+    request.state.request_uuid = request_uuid
     ctx = create_service_context(request)
     req_data = await extract_request_data(request)
     # Merge overrides into req_data dict if provided
@@ -72,12 +74,11 @@ async def database_request_logger_middleware(  # noqa: PLR0913
             response_body=response_body,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             duration_ms=duration_ms,
-            request_uuid=str(uuid.uuid4()),
+            request_uuid=request_uuid,
         )
         await save_request(args, table_prefix)
         raise err
 
-    request_uuid = str(uuid.uuid4())
     response.headers[REQUEST_LOGGER_HEADER] = request_uuid
     response_headers = str(response.headers)
     streaming_response = cast(StreamingResponse, response)
