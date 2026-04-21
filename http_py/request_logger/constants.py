@@ -1,1 +1,2 @@
 REQUEST_LOGGER_HEADER = "RRA-Request-Logger-Request-ID"
+REQUEST_LOGGER_CACHE_HEADER = "RRA-Request-Logger-Cache"

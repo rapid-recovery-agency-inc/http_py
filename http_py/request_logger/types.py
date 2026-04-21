@@ -1,6 +1,7 @@
 from typing import NamedTuple
 from dataclasses import dataclass
 
+from http_py.types import PostgressEnvironment
 from http_py.context import ContextProtocol
 
 
@@ -16,7 +17,7 @@ class RequestLoggerOverride(NamedTuple):
 
 @dataclass(frozen=True)
 class RequestArgs:
-    ctx: ContextProtocol
+    ctx: ContextProtocol[PostgressEnvironment]
     path: str
     from_cache: bool
     product_name: str | None

@@ -17,7 +17,10 @@ from http_py.requests.services import (
 )
 from http_py.request_logger.types import RequestArgs, RequestLoggerOverride
 from http_py.request_logger.utils import save_request
-from http_py.request_logger.constants import REQUEST_LOGGER_HEADER
+from http_py.request_logger.constants import (
+    REQUEST_LOGGER_HEADER,
+    REQUEST_LOGGER_CACHE_HEADER,
+)
 
 
 logger = create_logger(__name__)
@@ -32,6 +35,7 @@ async def database_request_logger_middleware(  # noqa: PLR0913
     table_prefix: str | None = None,
 ) -> Response:
     path = request.url.path
+    print(f"Request path: {path}")
     if path in path_whitelist:
         return await call_next(request)
 
@@ -93,10 +97,13 @@ async def database_request_logger_middleware(  # noqa: PLR0913
         logger.error("request_logger_middleware:UnexpectedEmptyBody")
 
     duration_ms = int((time.perf_counter() - start_time) * 1000)
+    from_cache = False
+    if hasattr(response.headers, REQUEST_LOGGER_CACHE_HEADER):
+        from_cache = True
     args = RequestArgs(
         ctx=ctx,
         path=req_data_dict["path"],
-        from_cache=False,
+        from_cache=from_cache,
         product_name=req_data_dict.get("product_name"),
         product_module=req_data_dict.get("product_module"),
         product_feature=req_data_dict.get("product_feature"),
