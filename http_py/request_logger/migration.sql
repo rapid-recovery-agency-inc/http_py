@@ -40,7 +40,8 @@ CREATE TABLE
         response_headers TEXT NULL,
         response_body TEXT NULL,
         status_code INTEGER NOT NULL,
-        duration_ms INTEGER DEFAULT 0
+        duration_ms INTEGER DEFAULT 0,
+        request_uuid UUID DEFAULT gen_random_uuid() NOT NULL
     );
 
 ALTER TABLE public.request_logger_request OWNER TO postgres;
@@ -50,13 +51,3 @@ CREATE INDEX IF NOT EXISTS request_logger_request__month_index ON public.request
 CREATE INDEX IF NOT EXISTS request_logger_request__day_index ON public.request_logger_request (day, product_name, path);
 
 CREATE INDEX IF NOT EXISTS request_logger_request__hour_index ON public.request_logger_request (hour, product_name, path);
-
-ALTER TABLE public.request_logger_request
-ADD COLUMN IF NOT EXISTS request_uuid UUID DEFAULT gen_random_uuid();
-
-UPDATE public.request_logger_request
-SET request_uuid = gen_random_uuid()
-WHERE request_uuid IS NULL;
-
-ALTER TABLE public.request_logger_request
-ALTER COLUMN request_uuid SET NOT NULL;

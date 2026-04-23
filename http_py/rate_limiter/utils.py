@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from psycopg import sql
 from psycopg_pool import PoolTimeout
 
+from http_py.types import PostgressEnvironment
 from http_py.context import ContextProtocol
 from http_py.logging.services import create_logger
 from http_py.requests.services import ExtractedRequestData
@@ -26,7 +27,7 @@ logger = create_logger(__name__)
 
 async def assert_capacity(
     args: ExtractedRequestData,
-    ctx: ContextProtocol,
+    ctx: ContextProtocol[PostgressEnvironment],
     rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
 ) -> None:
@@ -74,7 +75,7 @@ async def assert_capacity(
 
 async def fetch_rate_limiter_rule(
     args: ExtractedRequestData,
-    ctx: ContextProtocol,
+    ctx: ContextProtocol[PostgressEnvironment],
     rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
 ) -> RateLimiterRule | None:
@@ -133,7 +134,7 @@ async def fetch_rate_limiter_rule(
 
 async def fetch_rate_limiter_count(
     args: ExtractedRequestData,
-    ctx: ContextProtocol,
+    ctx: ContextProtocol[PostgressEnvironment],
     rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
 ) -> RateLimiterRequestCount | None:
@@ -168,7 +169,7 @@ async def fetch_rate_limiter_count(
 
 async def fetch_rate_limiter_monthly_count(
     args: ExtractedRequestData,
-    ctx: ContextProtocol,
+    ctx: ContextProtocol[PostgressEnvironment],
     table_prefix: str | None = None,
 ) -> int:
     now = datetime.now(tz=UTC)
@@ -220,7 +221,7 @@ async def fetch_rate_limiter_monthly_count(
 
 async def fetch_rate_limiter_daily_count(
     args: ExtractedRequestData,
-    ctx: ContextProtocol,
+    ctx: ContextProtocol[PostgressEnvironment],
     table_prefix: str | None = None,
 ) -> int:
     now = datetime.now(tz=UTC)
@@ -272,7 +273,7 @@ async def fetch_rate_limiter_daily_count(
 
 async def fetch_rate_limiter_hourly_count(
     args: ExtractedRequestData,
-    ctx: ContextProtocol,
+    ctx: ContextProtocol[PostgressEnvironment],
     table_prefix: str | None = None,
 ) -> int:
     now = datetime.now(tz=UTC)
