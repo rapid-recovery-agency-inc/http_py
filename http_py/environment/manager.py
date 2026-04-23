@@ -80,7 +80,7 @@ class EnvironmentManager[T]:
             set_environment(os.environ)  # overrides secrets again
 
             set_environment(os.environ)  # base layer
-            set_environment(os.environ, prefer_set_values=True)  # preserves secrets
+            set_environment(os.environ, prefer_set_values=True)  # preserves base values
         """
 
         coerced = to_dataclass_dict(self._dataclass_type, raw)
