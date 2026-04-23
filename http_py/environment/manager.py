@@ -65,9 +65,22 @@ class EnvironmentManager[T]:
     ) -> None:
         """Coerce *raw* and merge it on top of the current state.
 
-        When ``prefer_set_values`` is ``True``, any already-set non-``None``
-        values in the current state are preserved. Otherwise, later calls
-        override earlier values for the same keys.
+        By default, newer values replace older ones. When prefer_set_values is
+        enabled, any field already set to a non-None value keeps its existing
+        value, and only missing fields are filled from ``raw``.
+
+        Args:
+            raw: Incoming environment-like mapping to coerce and merge.
+            validate_values: Unused legacy flag.
+            prefer_set_values: Preserve already-set non-None values in state.
+
+        Examples:
+            set_environment(os.environ)  # base layer
+            set_environment(secret_manager_dict)  # overrides base
+            set_environment(os.environ)  # overrides secrets again
+
+            set_environment(os.environ)  # base layer
+            set_environment(os.environ, prefer_set_values=True)  # preserves secrets
         """
 
         coerced = to_dataclass_dict(self._dataclass_type, raw)
