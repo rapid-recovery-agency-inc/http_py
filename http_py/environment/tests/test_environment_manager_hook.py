@@ -53,8 +53,8 @@ def test_set_environment_prefer_set_values_non_empty_state_no_conflicts_flag_off
 ):
     mgr = create_environment(PreferEnv)
 
-    # Seed explicit unset for B.
-    mgr.set_environment({"A": 1, "B": None}, prefer_set_values=True)
+    # Seed A; B starts as None (raw None values are ignored by coercion).
+    mgr.set_environment({"A": 1}, prefer_set_values=True)
 
     # Fill missing field(s) without overwriting existing non-None values.
     mgr.set_environment({"B": 3}, prefer_set_values=False)
@@ -78,8 +78,8 @@ def test_set_environment_prefer_set_values_non_empty_state_conflicts_flag_off() 
 def test_set_environment_prefer_set_values_non_empty_state_conflicts_flag_on() -> None:
     mgr = create_environment(PreferEnv)
 
-    # Seed explicit unset for B.
-    mgr.set_environment({"A": 1, "B": None}, prefer_set_values=True)
+    # Seed A; B starts as None (raw None values are ignored by coercion).
+    mgr.set_environment({"A": 1}, prefer_set_values=True)
 
     # A is a conflict but should be preserved since it's non-None already.
     # B should be replaced since it's currently None.
