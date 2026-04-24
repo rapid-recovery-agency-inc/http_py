@@ -58,20 +58,42 @@ class EnvironmentManager[T]:
         return self._dataclass_type(**self._state)
 
     def set_environment(
-        self, raw: Mapping[str, Any], validate_values: bool = False
+        self,
+        raw: Mapping[str, Any],
+        validate_values: bool = False,
+        prefer_set_values: bool = False,
     ) -> None:
         """Coerce *raw* and merge it on top of the current state.
 
-        Later calls override values set by earlier calls for the same
-        keys.  This allows layering multiple sources (e.g. ``os.environ``
-        first, then a secret manager) with deterministic precedence::
+        By default, newer values replace older ones. When prefer_set_values is
+        enabled, any field already set to a non-None value keeps its existing
+        value, and only missing fields are filled from ``raw``.
 
+        Args:
+            raw: Incoming environment-like mapping to coerce and merge.
+            validate_values: Unused legacy flag.
+            prefer_set_values: Preserve already-set non-None values in state.
+
+        Examples:
             set_environment(os.environ)  # base layer
             set_environment(secret_manager_dict)  # overrides base
             set_environment(os.environ)  # overrides secrets again
+
+            set_environment(os.environ)  # base layer
+            set_environment(os.environ, prefer_set_values=True)  # preserves base values
         """
+
         coerced = to_dataclass_dict(self._dataclass_type, raw)
-        self._state = {**self._state, **coerced}
+
+        if prefer_set_values:
+            # Preserve any already-set, non-None values in the existing state.
+            # Only fill keys that are unset or currently None.
+            for key, value in coerced.items():
+                if self._state.get(key) is None:
+                    self._state[key] = value
+        else:
+            # Default behavior: later calls override earlier values.
+            self._state = {**self._state, **coerced}
 
         if self._post_set_hook is not None:
             instance = self._dataclass_type(**self._state)
