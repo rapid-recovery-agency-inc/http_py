@@ -1,4 +1,3 @@
-import asyncio
 from typing import cast
 from datetime import UTC, datetime
 
@@ -31,28 +30,24 @@ async def assert_capacity(
     rule_caching_expiration_seconds: int,
     table_prefix: str | None = None,
 ) -> None:
-    async with asyncio.TaskGroup() as tg:
-        task1 = tg.create_task(
-            fetch_rate_limiter_rule(
-                args,
-                ctx,
-                rule_caching_expiration_seconds,
-                table_prefix,
-            )
-        )
-        task2 = tg.create_task(
-            fetch_rate_limiter_count(
-                args, ctx, rule_caching_expiration_seconds, table_prefix
-            )
-        )
-
-    rule: RateLimiterRule | None = task1.result()
-    count: RateLimiterRequestCount | None = task2.result()
+    rule = await fetch_rate_limiter_rule(
+        args,
+        ctx,
+        rule_caching_expiration_seconds,
+        table_prefix,
+    )
 
     if rule is None:
         raise RateLimitException(
             f"Rate limiter rule not found for: {args.path} - {args.product_name}"
         )
+
+    count = await fetch_rate_limiter_count(
+        args,
+        ctx,
+        rule_caching_expiration_seconds,
+        table_prefix,
+    )
 
     if count is None:
         return
@@ -149,19 +144,74 @@ async def fetch_rate_limiter_count(
     if cached_value is not None:
         return cast(RateLimiterRequestCount, cached_value)
 
-    # Calculation
-    # Gather the counts concurrently
-    monthly_count = fetch_rate_limiter_monthly_count(args, ctx, table_prefix)
-    daily_count = fetch_rate_limiter_daily_count(args, ctx, table_prefix)
-    hourly_count = fetch_rate_limiter_hourly_count(args, ctx, table_prefix)
+    now = datetime.now(tz=UTC)
+    year = now.year
+    month = now.month
+    day = now.day
+    hour = now.hour
+    month_key = (year * 100) + month
+    day_key = (((year * 100) + month) * 100) + day
+    hour_key = ((((year * 100) + month) * 100 + day) * 100) + hour
+    table = resolve_table_name(DEFAULT_REQUEST_TABLE, table_prefix)
 
-    result = await asyncio.gather(monthly_count, daily_count, hourly_count)
+    try:
+        async with ctx.reader.connection() as conn:
+            async with conn.cursor() as cur:
+                query = sql.SQL(
+                    """
+                    SELECT
+                        COUNT(*) FILTER (WHERE month = %(month_key)s) AS monthly_count,
+                        COUNT(*) FILTER (WHERE day = %(day_key)s) AS daily_count,
+                        COUNT(*) FILTER (WHERE hour = %(hour_key)s) AS hourly_count
+                    FROM {table}
+                    WHERE
+                        path = %(path)s
+                      AND product_name = %(product_name)s
+                      AND (
+                        month = %(month_key)s
+                        OR day = %(day_key)s
+                        OR hour = %(hour_key)s
+                      )
+                    """
+                ).format(table=sql.Identifier(table))
+                await cur.execute(
+                    query,
+                    {
+                        "month_key": month_key,
+                        "day_key": day_key,
+                        "hour_key": hour_key,
+                        "path": args.path,
+                        "product_name": args.product_name,
+                    },
+                )
+                row = await cur.fetchone()
+    except PoolTimeout as e:
+        meta = {
+            "stats": ctx.reader.get_stats(),
+            "timeout": ctx.reader.timeout,
+        }
+        logger.error(
+            "fetch_rate_limiter_count: PoolTimeout occurred meta=%r, exc_info=%r",
+            meta,
+            e,
+        )
+        raise
+
+    if row is None:
+        monthly_count = 0
+        daily_count = 0
+        hourly_count = 0
+    else:
+        monthly_count = int(row[0] or 0)
+        daily_count = int(row[1] or 0)
+        hourly_count = int(row[2] or 0)
+
     count = RateLimiterRequestCount(
         path=args.path,
         product_name=args.product_name,
-        monthly_count=result[0],
-        daily_count=result[1],
-        hourly_count=result[2],
+        monthly_count=monthly_count,
+        daily_count=daily_count,
+        hourly_count=hourly_count,
     )
     CACHE.set(cache_key, count, rule_caching_expiration_seconds)
     return count
@@ -216,7 +266,7 @@ async def fetch_rate_limiter_monthly_count(
             meta,
             e,
         )
-        raise e
+        raise
 
 
 async def fetch_rate_limiter_daily_count(
@@ -268,7 +318,7 @@ async def fetch_rate_limiter_daily_count(
             meta,
             e,
         )
-        raise e
+        raise
 
 
 async def fetch_rate_limiter_hourly_count(
@@ -322,4 +372,4 @@ async def fetch_rate_limiter_hourly_count(
             meta,
             e,
         )
-        raise e
+        raise
