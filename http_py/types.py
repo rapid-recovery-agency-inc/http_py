@@ -36,3 +36,17 @@ class HMACEnvironment(Protocol):
 @runtime_checkable
 class E2ETestEnvironment(Protocol):
     TEST_DATABASE_URL: str
+
+
+@runtime_checkable
+class MySQLEnvironment(Protocol):
+    MYSQL_USERNAME: str
+    MYSQL_PASSWORD: str
+    MYSQL_WRITER_HOST: str
+    MYSQL_READER_HOSTS: str
+    MYSQL_PORT: int
+    MYSQL_DB_NAME: str
+    MYSQL_POOL_MIN_SIZE: int
+    MYSQL_POOL_MAX_SIZE: int
+    MYSQL_CONNECT_TIMEOUT: int
+    MYSQL_POOL_RECYCLE: int

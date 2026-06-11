@@ -15,6 +15,10 @@ def fetch_aws_secret(secret_name: str, aws_region: str) -> dict[str, str]:
     client: SecretsManagerClient = Session().client(
         "secretsmanager", region_name=aws_region
     )
+
+    if not aws_region:
+        raise ValueError("fetch_aws_secret:AWS region is required to fetch secrets")
+
     try:
         secret_value = client.get_secret_value(SecretId=secret_name)
     except Exception as e:
