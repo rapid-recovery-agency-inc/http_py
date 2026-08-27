@@ -21,7 +21,7 @@ class HMACEnv:
     """HMAC configuration implementing HMACEnvironment protocol."""
 
     SECRETS: list[str]  # Multiple secrets for key rotation
-    HMAC_HEADER_NAME: str = "X-HMAC-Signature"
+    HMAC_SIGNATURE_HEADER_NAME: str = "X-HMAC-Signature"
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ app = FastAPI()
 
 env = HMACEnv(
     SECRETS=["current_secret", "previous_secret"],  # Key rotation
-    HMAC_HEADER_NAME="X-HMAC-Signature",
+    HMAC_SIGNATURE_HEADER_NAME="X-HMAC-Signature",
 )
 
 async def verify_hmac(request: Request):
@@ -99,7 +99,7 @@ def key_rotation_example() -> None:
             "new_secret_2024",  # Current secret
             "old_secret_2023",  # Previous secret (for transition period)
         ],
-        HMAC_HEADER_NAME="X-HMAC-Signature",
+        HMAC_SIGNATURE_HEADER_NAME="X-HMAC-Signature",
     )
     # Both old and new signed requests will validate during rotation
 

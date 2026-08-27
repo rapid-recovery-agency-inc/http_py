@@ -20,7 +20,7 @@ This module provides HMAC-SHA256 signature verification for HTTP API authenticat
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
 │            require_hmac_signature(request, env)             │
-│  1. Extract signature from header (env.HMAC_HEADER_NAME)    │
+│  1. Extract signature from header (env.HMAC_SIGNATURE_HEADER_NAME)    │
 │  2. Validate HTTP method (GET, POST only)                   │
 │  3. Extract URL, params, body from request                  │
 └─────────────────────┬───────────────────────────────────────┘
@@ -44,13 +44,13 @@ This module provides HMAC-SHA256 signature verification for HTTP API authenticat
 
 ## File Structure
 
-| File | Description |
-|------|-------------|
-| `__init__.py` | Exports public API |
-| `constants.py` | Error message constants |
-| `exceptions.py` | `HMACException` for authentication failures |
-| `services.py` | `require_hmac_signature()` validation function |
-| `utils.py` | `sign()` function for generating HMAC signatures |
+| File            | Description                                      |
+| --------------- | ------------------------------------------------ |
+| `__init__.py`   | Exports public API                               |
+| `constants.py`  | Error message constants                          |
+| `exceptions.py` | `HMACException` for authentication failures      |
+| `services.py`   | `require_hmac_signature()` validation function   |
+| `utils.py`      | `sign()` function for generating HMAC signatures |
 
 ## Key Components
 
@@ -78,20 +78,20 @@ Validates incoming request signature:
 
 Custom exception with HTTP semantics:
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `status_code` | int | HTTP status (typically 401) |
-| `detail` | Any | Error message |
-| `headers` | dict | Optional response headers |
+| Attribute     | Type | Description                 |
+| ------------- | ---- | --------------------------- |
+| `status_code` | int  | HTTP status (typically 401) |
+| `detail`      | Any  | Error message               |
+| `headers`     | dict | Optional response headers   |
 
 ## Environment Configuration
 
 Requires `HMACEnvironment` protocol from `http_py.types`:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `SECRETS` | list[str] | List of valid signing secrets (for rotation) |
-| `HMAC_HEADER_NAME` | str | Header name containing signature |
+| Field                        | Type      | Description                                  |
+| ---------------------------- | --------- | -------------------------------------------- |
+| `SECRETS`                    | list[str] | List of valid signing secrets (for rotation) |
+| `HMAC_SIGNATURE_HEADER_NAME` | str       | Header name containing signature             |
 
 ## Usage Example
 
@@ -107,7 +107,7 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class AppEnv:
     SECRETS: list[str] = field(default_factory=lambda: ["secret1", "secret2"])
-    HMAC_HEADER_NAME: str = "X-HMAC-Signature"
+    HMAC_SIGNATURE_HEADER_NAME: str = "X-HMAC-Signature"
 
 env = AppEnv()
 
@@ -141,7 +141,7 @@ from http_py.hmac import sign
 def make_signed_request(url: str, secret: str, params: dict = None):
     signature = sign(secret, url, params)
     headers = {"X-HMAC-Signature": signature}
-    
+
     response = httpx.get(url, params=params, headers=headers)
     return response
 ```
@@ -154,6 +154,7 @@ signature = hmac_sha256(secret, message).hexdigest()
 ```
 
 Example:
+
 ```
 URL: https://api.example.com/users?name=alice&age=30
 Body: {"action": "create"}
@@ -210,13 +211,13 @@ async def require_hmac_with_timestamp(request: Request, env: HMACEnvironment):
     timestamp = request.headers.get("X-Request-Timestamp")
     if timestamp is None:
         raise HMACException(401, "Missing timestamp")
-    
+
     request_time = int(timestamp)
     current_time = int(time.time())
-    
+
     if abs(current_time - request_time) > MAX_REQUEST_AGE_SECONDS:
         raise HMACException(401, "Request expired")
-    
+
     # Include timestamp in signature validation
     await require_hmac_signature(request, env)
 ```
@@ -224,6 +225,7 @@ async def require_hmac_with_timestamp(request: Request, env: HMACEnvironment):
 ### Migration Notes
 
 When extending the HMAC module:
+
 1. Maintain backward compatibility with existing signature format
 2. Add new validation rules as opt-in via environment flags
 3. Consider versioning signatures (e.g., `v1:signature`, `v2:signature`)

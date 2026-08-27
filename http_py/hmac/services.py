@@ -16,7 +16,7 @@ DEFAULT_HEADER_NAME: str = "RRA-HMAC-Signature"
 
 
 async def require_hmac_signature(request: Request, env: HMACEnvironment) -> None:
-    signature: str | None = request.headers.get(env.HMAC_HEADER_NAME, None)
+    signature: str | None = request.headers.get(env.HMAC_SIGNATURE_HEADER_NAME, None)
 
     if signature is None:
         raise HMACException(status_code=401, detail=HMAC_MISSING_SIGNATURE)
@@ -45,9 +45,13 @@ async def require_hmac_signature(request: Request, env: HMACEnvironment) -> None
 def build_hmac_factory_dependency(
     env: HMACEnvironment,
 ) -> HMACFactoryDependency:
-    if not env.HMAC_HEADER_NAME or str(env.HMAC_HEADER_NAME).strip() == "":
+    if not env.HMAC_SIGNATURE_HEADER_NAME:
         raise ValueError(
-            "require_hmac_signature:HMAC_HEADER_NAME must be set in the environment"
+            "require_hmac_signature:HMAC_SIGNATURE_HEADER_NAME not set in environment"
+        )
+    if str(env.HMAC_SIGNATURE_HEADER_NAME).strip() == "":
+        raise ValueError(
+            "require_hmac_signature:HMAC_SIGNATURE_HEADER_NAME cannot be empty"
         )
 
     if not env.SECRETS or not isinstance(env.SECRETS, list) or len(env.SECRETS) == 0:

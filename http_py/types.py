@@ -30,7 +30,7 @@ class PostgressEnvironment(Protocol):
 @runtime_checkable
 class HMACEnvironment(Protocol):
     SECRETS: list[str]
-    HMAC_HEADER_NAME: str
+    HMAC_SIGNATURE_HEADER_NAME: str
 
 
 @runtime_checkable

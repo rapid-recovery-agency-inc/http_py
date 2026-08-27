@@ -62,6 +62,7 @@ set_environment = _manager.set_environment
 ```
 
 **Features:**
+
 - Frozen dataclass-based configuration
 - Automatic type coercion (str → bool, int, float, list, dict)
 - Required vs optional field validation
@@ -216,7 +217,7 @@ app = FastAPI()
 
 env = HMACEnv(
     SECRETS=["current_secret", "previous_secret"],  # Key rotation
-    HMAC_HEADER_NAME="X-HMAC-Signature",
+    HMAC_SIGNATURE_HEADER_NAME="X-HMAC-Signature",
 )
 
 async def verify_hmac(request: Request):
