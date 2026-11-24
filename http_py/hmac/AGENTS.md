@@ -93,9 +93,8 @@ Requires `HMACEnvironment` protocol from `http_py.types`:
 | `SECRETS`                    | list[str] | List of valid signing secrets (for rotation) |
 | `HMAC_SIGNATURE_HEADER_NAME` | str       | Header name containing signature             |
 
-`resolve_signature_header_name()` resolves the header with precedence:
-`HMAC_SIGNATURE_HEADER_NAME` → legacy `HMAC_HEADER_NAME` (emits a
-`DeprecationWarning`) → `DEFAULT_HEADER_NAME` (`RRA-HMAC-Signature`).
+`HMAC_SIGNATURE_HEADER_NAME` defaults to `DEFAULT_HEADER_NAME`
+(`X-RRA-Signature`) when unset.
 
 ## Usage Example
 

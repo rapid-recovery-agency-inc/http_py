@@ -1,5 +1,4 @@
 import hmac
-import warnings
 
 from http_py.types import HMACEnvironment
 from http_py.hmac.types import HMACFactoryDependency
@@ -13,33 +12,14 @@ from http_py.hmac.exceptions import HMACException
 from http_py.requests.services import Request
 
 
-DEFAULT_HEADER_NAME: str = "RRA-HMAC-Signature"
-
-
-def resolve_signature_header_name(env: HMACEnvironment) -> str:
-    """Resolve the request header that carries the HMAC signature.
-
-    Precedence: HMAC_SIGNATURE_HEADER_NAME, then the legacy
-    HMAC_HEADER_NAME, then DEFAULT_HEADER_NAME.
-    """
-    name: str | None = getattr(env, "HMAC_SIGNATURE_HEADER_NAME", None)
-    if name and str(name).strip():
-        return str(name)
-    legacy_name: str | None = getattr(env, "HMAC_HEADER_NAME", None)
-    if legacy_name and str(legacy_name).strip():
-        warnings.warn(
-            "HMAC_HEADER_NAME is deprecated; set HMAC_SIGNATURE_HEADER_NAME instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return str(legacy_name)
-    return DEFAULT_HEADER_NAME
+DEFAULT_HEADER_NAME: str = "X-RRA-Signature"
 
 
 async def require_hmac_signature(request: Request, env: HMACEnvironment) -> None:
-    signature: str | None = request.headers.get(
-        resolve_signature_header_name(env), None
+    header_name: str = (
+        getattr(env, "HMAC_SIGNATURE_HEADER_NAME", None) or DEFAULT_HEADER_NAME
     )
+    signature: str | None = request.headers.get(header_name, None)
 
     if signature is None:
         raise HMACException(status_code=401, detail=HMAC_MISSING_SIGNATURE)
