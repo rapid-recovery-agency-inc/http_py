@@ -96,7 +96,3 @@ exclude = [
     'examples/*',
     '.*/tests/.*',
 ]
-
-[[tool.mypy.overrides]]
-module = "aiomysql"
-ignore_missing_imports = true
