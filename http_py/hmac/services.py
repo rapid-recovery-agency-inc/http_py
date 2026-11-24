@@ -16,9 +16,7 @@ DEFAULT_HEADER_NAME: str = "X-RRA-Signature"
 
 
 async def require_hmac_signature(request: Request, env: HMACEnvironment) -> None:
-    header_name: str = (
-        getattr(env, "HMAC_SIGNATURE_HEADER_NAME", None) or DEFAULT_HEADER_NAME
-    )
+    header_name: str = env.HMAC_SIGNATURE_HEADER_NAME or DEFAULT_HEADER_NAME
     signature: str | None = request.headers.get(header_name, None)
 
     if signature is None:

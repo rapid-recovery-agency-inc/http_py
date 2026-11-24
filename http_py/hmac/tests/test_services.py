@@ -26,6 +26,7 @@ class NamedEnv:
 @dataclass(frozen=True)
 class NoNameEnv:
     SECRETS: list[str]
+    HMAC_SIGNATURE_HEADER_NAME: str = ""
 
 
 def signed_request(header_name: str) -> Request:
