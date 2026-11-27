@@ -12,11 +12,12 @@ from http_py.hmac.exceptions import HMACException
 from http_py.requests.services import Request
 
 
-DEFAULT_HEADER_NAME: str = "RRA-HMAC-Signature"
+DEFAULT_HEADER_NAME: str = "X-RRA-Signature"
 
 
 async def require_hmac_signature(request: Request, env: HMACEnvironment) -> None:
-    signature: str | None = request.headers.get(env.HMAC_SIGNATURE_HEADER_NAME, None)
+    header_name: str = env.HMAC_SIGNATURE_HEADER_NAME or DEFAULT_HEADER_NAME
+    signature: str | None = request.headers.get(header_name, None)
 
     if signature is None:
         raise HMACException(status_code=401, detail=HMAC_MISSING_SIGNATURE)
@@ -45,15 +46,6 @@ async def require_hmac_signature(request: Request, env: HMACEnvironment) -> None
 def build_hmac_factory_dependency(
     env: HMACEnvironment,
 ) -> HMACFactoryDependency:
-    if not env.HMAC_SIGNATURE_HEADER_NAME:
-        raise ValueError(
-            "require_hmac_signature:HMAC_SIGNATURE_HEADER_NAME not set in environment"
-        )
-    if str(env.HMAC_SIGNATURE_HEADER_NAME).strip() == "":
-        raise ValueError(
-            "require_hmac_signature:HMAC_SIGNATURE_HEADER_NAME cannot be empty"
-        )
-
     if not env.SECRETS or not isinstance(env.SECRETS, list) or len(env.SECRETS) == 0:
         raise ValueError(
             "require_hmac_signature:SECRETS must be a non-empty list in the environment"
